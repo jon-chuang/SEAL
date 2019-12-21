@@ -25,6 +25,7 @@ int main()
         cout << "| 4. CKKS Basics             | 4_ckks_basics.cpp          |" << endl;
         cout << "| 5. Rotation                | 5_rotation.cpp             |" << endl;
         cout << "| 6. Performance Test        | 6_performance.cpp          |" << endl;
+        cout << "| 7. CUDA Test               | 7_cuda_test.cpp            |" << endl;
         cout << "+----------------------------+----------------------------+" << endl;
 
         /*
@@ -41,12 +42,12 @@ int main()
         bool invalid = true;
         do
         {
-            cout << endl << "> Run example (1 ~ 6) or exit (0): ";
+            cout << endl << "> Run example (1 ~ 7) or exit (0): ";
             if (!(cin >> selection))
             {
                 invalid = false;
             }
-            else if (selection < 0 || selection > 6)
+            else if (selection < 0 || selection > 7)
             {
                 invalid = false;
             }
@@ -56,7 +57,7 @@ int main()
             }
             if (!invalid)
             {
-                cout << "  [Beep~~] Invalid option: type 0 ~ 6" << endl;
+                cout << "  [Beep~~] Invalid option: type 0 ~ 7" << endl;
                 cin.clear();
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
             }
@@ -86,6 +87,10 @@ int main()
 
         case 6:
             example_performance_test();
+            break;
+
+        case 7:
+            example_cuda_test();
             break;
 
         case 0:

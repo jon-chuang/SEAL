@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.12)
 
-project(SEALExamples VERSION 3.4.5 LANGUAGES CXX)
+project(SEALExamples VERSION 3.4.5 LANGUAGES CXX CUDA)
 
 # Executable will be in ../bin
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${SEALExamples_SOURCE_DIR}/../bin)
@@ -17,6 +17,7 @@ target_sources(sealexamples
         4_ckks_basics.cpp
         5_rotation.cpp
         6_performance.cpp
+        7_cuda_test.cpp
 )
 
 # Import Microsoft SEAL

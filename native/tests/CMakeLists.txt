@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.12)
 
-project(SEALTest LANGUAGES CXX)
+project(SEALTest LANGUAGES CXX CUDA)
 
 # Executable will be in ../bin
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${SEALTest_SOURCE_DIR}/../bin)
