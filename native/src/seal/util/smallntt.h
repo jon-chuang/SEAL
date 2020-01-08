@@ -30,6 +30,16 @@ namespace seal
             SmallNTTTables(int coeff_count_power, const SmallModulus &modulus,
                 MemoryPoolHandle pool = MemoryManager::GetPool());
 
+            ~SmallNTTTables()
+            {
+              reset();
+              delete coeff_count_power_;
+              delete inv_degree_modulo_;
+              delete coeff_count_;
+              delete generated_;
+              delete root_;
+            }
+
             __host__ __device__  SEAL_NODISCARD inline bool is_generated() const
             {
                 return generated_;

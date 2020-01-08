@@ -187,6 +187,7 @@ namespace seal
             cuda_ntt_negacyclic_harvey_lazy(operand, tables, modulus);
 
             cudaDeviceSynchronize();
+            cudaFree(d_operand);
             // *operand = *d_operand;
         }
 
