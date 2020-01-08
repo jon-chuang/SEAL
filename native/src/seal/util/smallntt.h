@@ -4,6 +4,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <cuda_runtime.h>
 #include "seal/util/pointer.h"
 #include "seal/memorymanager.h"
 #include "seal/smallmodulus.h"
@@ -29,7 +30,7 @@ namespace seal
             SmallNTTTables(int coeff_count_power, const SmallModulus &modulus,
                 MemoryPoolHandle pool = MemoryManager::GetPool());
 
-            SEAL_NODISCARD inline bool is_generated() const
+            __host__ __device__  SEAL_NODISCARD inline bool is_generated() const
             {
                 return generated_;
             }
@@ -38,136 +39,64 @@ namespace seal
 
             void reset();
 
-            SEAL_NODISCARD inline std::uint64_t get_root() const
+            __host__ __device__  SEAL_NODISCARD inline std::uint64_t get_root() const
             {
-#ifdef SEAL_DEBUG
-                if (!generated_)
-                {
-                    throw std::logic_error("tables are not generated");
-                }
-#endif
                 return root_;
             }
 
-            SEAL_NODISCARD inline auto get_from_root_powers(
+            __host__ __device__ SEAL_NODISCARD inline auto get_from_root_powers(
                 std::size_t index) const -> std::uint64_t
             {
-#ifdef SEAL_DEBUG
-                if (index >= coeff_count_)
-                {
-                    throw std::out_of_range("index");
-                }
-                if (!generated_)
-                {
-                    throw std::logic_error("tables are not generated");
-                }
-#endif
                 return root_powers_[index];
             }
 
-            SEAL_NODISCARD inline auto get_from_scaled_root_powers(
+            __host__ __device__  SEAL_NODISCARD inline auto get_from_scaled_root_powers(
                 std::size_t index) const -> std::uint64_t
             {
-#ifdef SEAL_DEBUG
-                if (index >= coeff_count_)
-                {
-                    throw std::out_of_range("index");
-                }
-                if (!generated_)
-                {
-                    throw std::logic_error("tables are not generated");
-                }
-#endif
                 return scaled_root_powers_[index];
             }
 
-            SEAL_NODISCARD inline auto get_from_inv_root_powers(
+            __host__ __device__ SEAL_NODISCARD inline auto get_from_inv_root_powers(
                 std::size_t index) const -> std::uint64_t
             {
-#ifdef SEAL_DEBUG
-                if (index >= coeff_count_)
-                {
-                    throw std::out_of_range("index");
-                }
-                if (!generated_)
-                {
-                    throw std::logic_error("tables are not generated");
-                }
-#endif
                 return inv_root_powers_[index];
             }
 
-            SEAL_NODISCARD inline auto get_from_scaled_inv_root_powers(
+            __host__ __device__ SEAL_NODISCARD inline auto get_from_scaled_inv_root_powers(
                 std::size_t index) const -> std::uint64_t
             {
-#ifdef SEAL_DEBUG
-                if (index >= coeff_count_)
-                {
-                    throw std::out_of_range("index");
-                }
-                if (!generated_)
-                {
-                    throw std::logic_error("tables are not generated");
-                }
-#endif
                 return scaled_inv_root_powers_[index];
             }
 
-            SEAL_NODISCARD inline auto get_from_inv_root_powers_div_two(
+            __host__ __device__ SEAL_NODISCARD inline auto get_from_inv_root_powers_div_two(
                 std::size_t index) const -> std::uint64_t
             {
-#ifdef SEAL_DEBUG
-                if (index >= coeff_count_)
-                {
-                    throw std::out_of_range("index");
-                }
-                if (!generated_)
-                {
-                    throw std::logic_error("tables are not generated");
-                }
-#endif
                 return inv_root_powers_div_two_[index];
             }
 
-            SEAL_NODISCARD inline auto get_from_scaled_inv_root_powers_div_two(
+            __host__ __device__  SEAL_NODISCARD inline auto get_from_scaled_inv_root_powers_div_two(
                 std::size_t index) const -> std::uint64_t
             {
-#ifdef SEAL_DEBUG
-                if (index >= coeff_count_)
-                {
-                    throw std::out_of_range("index");
-                }
-                if (!generated_)
-                {
-                    throw std::logic_error("tables are not generated");
-                }
-#endif
                 return scaled_inv_root_powers_div_two_[index];
             }
 
-            SEAL_NODISCARD inline auto get_inv_degree_modulo() const
+            __host__ __device__ SEAL_NODISCARD inline auto get_inv_degree_modulo() const
                 -> const std::uint64_t*
             {
-#ifdef SEAL_DEBUG
-                if (!generated_)
-                {
-                    throw std::logic_error("tables are not generated");
-                }
-#endif
                 return &inv_degree_modulo_;
             }
 
-            SEAL_NODISCARD inline const SmallModulus &modulus() const
+            __host__ __device__ SEAL_NODISCARD inline const SmallModulus &modulus() const
             {
                 return modulus_;
             }
 
-            SEAL_NODISCARD inline int coeff_count_power() const
+            __host__ __device__ SEAL_NODISCARD inline int coeff_count_power() const
             {
                 return coeff_count_power_;
             }
 
-            SEAL_NODISCARD inline std::size_t coeff_count() const
+            __host__ __device__ SEAL_NODISCARD inline std::size_t coeff_count() const
             {
                 return coeff_count_;
             }
@@ -198,16 +127,16 @@ namespace seal
             std::uint64_t root_ = 0;
 
             // Size coeff_count_
-            Pointer<decltype(root_)> root_powers_;
+            std::uint64_t* root_powers_;
 
             // Size coeff_count_
-            Pointer<decltype(root_)> scaled_root_powers_;
+            std::uint64_t* scaled_root_powers_;
 
             // Size coeff_count_
-            Pointer<decltype(root_)> inv_root_powers_div_two_;
+            std::uint64_t* inv_root_powers_div_two_;
 
             // Size coeff_count_
-            Pointer<decltype(root_)> scaled_inv_root_powers_div_two_;
+            std::uint64_t* scaled_inv_root_powers_div_two_;
 
             int coeff_count_power_ = 0;
 
@@ -216,10 +145,10 @@ namespace seal
             SmallModulus modulus_;
 
             // Size coeff_count_
-            Pointer<decltype(root_)> inv_root_powers_;
+            std::uint64_t* inv_root_powers_;
 
             // Size coeff_count_
-            Pointer<decltype(root_)> scaled_inv_root_powers_;
+            std::uint64_t* scaled_inv_root_powers_;
 
             std::uint64_t inv_degree_modulo_ = 0;
 
@@ -228,11 +157,12 @@ namespace seal
         void ntt_negacyclic_harvey_lazy(std::uint64_t *operand,
             const SmallNTTTables &tables);
 
+        void cuda_ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables, uint64_t modulus);
+
         inline void ntt_negacyclic_harvey(std::uint64_t *operand,
             const SmallNTTTables &tables)
         {
             ntt_negacyclic_harvey_lazy(operand, tables);
-
             // Finally maybe we need to reduce every coefficient modulo q, but we
             // know that they are in the range [0, 4q).
             // Since word size is controlled this is fast.

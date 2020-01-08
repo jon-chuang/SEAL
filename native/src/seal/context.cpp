@@ -118,8 +118,7 @@ namespace seal
 
         // Can we use NTT with coeff_modulus?
         context_data.qualifiers_.using_ntt = true;
-        context_data.small_ntt_tables_ =
-            allocate<SmallNTTTables>(coeff_mod_count, pool_, pool_);
+        cudaMallocManaged(&context_data.small_ntt_tables_, coeff_mod_count*sizeof(SmallNTTTables));
         for (size_t i = 0; i < coeff_mod_count; i++)
         {
             if (!context_data.small_ntt_tables_[i].generate(coeff_count_power,
@@ -163,7 +162,7 @@ namespace seal
 
             // Can we use batching? (NTT with plain_modulus)
             context_data.qualifiers_.using_batching = false;
-            context_data.plain_ntt_tables_ = allocate<SmallNTTTables>(pool_);
+            cudaMallocManaged(&context_data.plain_ntt_tables_, sizeof(SmallNTTTables));
             if (context_data.plain_ntt_tables_->generate(coeff_count_power, plain_modulus))
             {
                 context_data.qualifiers_.using_batching = true;
