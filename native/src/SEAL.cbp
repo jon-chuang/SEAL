@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="SEAL"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\dotnet\;CMake Files\..\..\dotnet\nuget\;CMake Files\cmake\;CMake Files\seal\;CMake Files\seal\util\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install/strip">
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 install/strip"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install">
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 install"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="seal">
+				<Option output="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/lib/libseal-3.4.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 seal"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="seal/fast">
+				<Option output="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/lib/libseal-3.4.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 seal/fast"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="list_install_components">
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 list_install_components"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install/local">
+				<Option working_dir="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 install/local"/>
+					<CompileFile command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -f &quot;/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/batchencoder.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/batchencoder.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/biguint.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/biguint.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/ciphertext.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/ciphertext.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/ckks.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/ckks.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/context.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/context.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/decryptor.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/decryptor.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/encryptionparams.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/encryptionparams.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/encryptor.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/encryptor.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/evaluator.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/evaluator.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/intencoder.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/intencoder.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/keygenerator.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/keygenerator.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/kswitchkeys.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/kswitchkeys.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/memorymanager.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/memorymanager.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/modulus.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/modulus.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/plaintext.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/plaintext.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/randomgen.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/randomgen.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/serialization.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/serialization.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/smallmodulus.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/smallmodulus.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/test.cu">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/test.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/baseconverter.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/baseconverter.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/blake2b.c">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/blake2xb.c">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/clipnormal.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/clipnormal.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/croots.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/croots.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/globals.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/globals.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/mempool.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/mempool.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/numth.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/numth.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/polyarith.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/polyarith.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/polyarithmod.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/polyarithmod.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/polyarithsmallmod.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/polyarithsmallmod.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/rlwe.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/rlwe.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/scalingvariant.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/scalingvariant.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/smallntt.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/smallntt.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/smallnttcuda.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/uintarith.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/uintarith.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/uintarithmod.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/uintarithmod.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/uintarithsmallmod.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/uintarithsmallmod.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/uintcore.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/uintcore.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/ztools.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/ztools.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/valcheck.cpp">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/valcheck.h">
+			<Option target="seal"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/../../dotnet/nuget/SEALNet.nuspec.in">
+			<Option virtualFolder="CMake Files\..\..\dotnet\nuget\"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/../../dotnet/nuget/SEALNet.targets.in">
+			<Option virtualFolder="CMake Files\..\..\dotnet\nuget\"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/cmake/SEALConfig.cmake.in">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\seal\"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\seal\util\"/>
+		</Unit>
+		<Unit filename="/home/jonch/Desktop/Programming/fakeSEAL/SEAL/native/src/seal/util/config.h.in">
+			<Option virtualFolder="CMake Files\seal\util\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

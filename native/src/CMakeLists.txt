@@ -352,7 +352,7 @@ if(SEAL_LIB_BUILD_TYPE STREQUAL "Shared")
     set_target_properties(seal PROPERTIES
         SOVERSION ${SEAL_VERSION_MAJOR}.${SEAL_VERSION_MINOR})
 else()
-    add_library(seal STATIC "")
+    add_library(seal STATIC "" seal/util/smallnttcuda.h)
 
     # For a static library indicate version in the filename
     set_target_properties(seal PROPERTIES OUTPUT_NAME seal-${SEAL_VERSION_MAJOR}.${SEAL_VERSION_MINOR})

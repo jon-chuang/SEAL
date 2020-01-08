@@ -43,7 +43,7 @@ namespace seal
 
             void floor_last_coeff_modulus_ntt_inplace(
                 std::uint64_t *rns_poly,
-                const Pointer<SmallNTTTables> &rns_ntt_tables,
+                const SmallNTTTables *rns_ntt_tables,
                 MemoryPoolHandle pool) const;
 
             void round_last_coeff_modulus_inplace(
@@ -52,7 +52,7 @@ namespace seal
 
             void round_last_coeff_modulus_ntt_inplace(
                 std::uint64_t *rns_poly,
-                const Pointer<SmallNTTTables> &rns_ntt_tables,
+                const SmallNTTTables *rns_ntt_tables,
                 MemoryPoolHandle pool) const;
 
             /**
@@ -274,7 +274,7 @@ namespace seal
             Pointer<std::uint64_t> plain_gamma_product_mod_coeff_array_;
 
             // Array of small NTT tables for moduli in Bsk
-            Pointer<SmallNTTTables> bsk_small_ntt_tables_;
+            SmallNTTTables *bsk_small_ntt_tables_;
 
             // For modulus switching: inverses of the last coeff base modulus
             Pointer<std::uint64_t> inv_last_coeff_mod_array_;

@@ -132,7 +132,7 @@ namespace seal
             bsk_base_array_[bsk_base_mod_count_ - 1] = m_sk_;
 
             // Generate Bsk U {mtilde} small ntt tables which is used in Evaluator
-            bsk_small_ntt_tables_ = allocate<SmallNTTTables>(bsk_base_mod_count_, pool_);
+            cudaMallocManaged(&bsk_small_ntt_tables_, bsk_base_mod_count_*sizeof(SmallNTTTables));
             for (size_t i = 0; i < bsk_base_mod_count_; i++)
             {
                 if (!bsk_small_ntt_tables_[i].generate(coeff_count_power, bsk_base_array_[i]))
@@ -497,7 +497,7 @@ namespace seal
             coeff_products_mod_plain_gamma_array_.release();
             neg_inv_coeff_products_all_mod_plain_gamma_array_.release();
             plain_gamma_product_mod_coeff_array_.release();
-            bsk_small_ntt_tables_.release();
+            cudaFree(bsk_small_ntt_tables_);
             inv_last_coeff_mod_array_.release();
             inv_coeff_products_mod_mtilde_ = 0;
             m_tilde_ = 0;
@@ -613,7 +613,7 @@ namespace seal
 
         void BaseConverter::floor_last_coeff_modulus_ntt_inplace(
                 std::uint64_t *rns_poly,
-                const Pointer<SmallNTTTables> &rns_ntt_tables,
+                const SmallNTTTables *rns_ntt_tables,
                 MemoryPoolHandle pool) const
         {
             auto temp(allocate_uint(coeff_count_, pool));
@@ -695,7 +695,7 @@ namespace seal
 
         void BaseConverter::round_last_coeff_modulus_ntt_inplace(
                 std::uint64_t *rns_poly,
-                const Pointer<SmallNTTTables> &rns_ntt_tables,
+                const SmallNTTTables *rns_ntt_tables,
                 MemoryPoolHandle pool) const
         {
             auto temp(allocate_uint(coeff_count_, pool));
