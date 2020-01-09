@@ -4,7 +4,7 @@
 #pragma once
 
 #include <stdexcept>
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include "seal/util/pointer.h"
 #include "seal/memorymanager.h"
 #include "seal/smallmodulus.h"

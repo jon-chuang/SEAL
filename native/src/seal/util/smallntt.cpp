@@ -7,7 +7,7 @@
 #include "seal/smallmodulus.h"
 #include "seal/util/uintarithsmallmod.h"
 #include "seal/util/defines.h"
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include "seal/util/smallnttcuda.h"
 #include <algorithm>
 
@@ -44,12 +44,13 @@ namespace seal
             generated_ = false;
             modulus_ = SmallModulus();
             root_ = 0;
-            cudaFree(root_powers_);
-            cudaFree(scaled_root_powers_);
-            cudaFree(inv_root_powers_);
-            cudaFree(scaled_inv_root_powers_);
-            cudaFree(inv_root_powers_div_two_);
-            cudaFree(scaled_inv_root_powers_div_two_);
+
+            if (root_powers_)                    cudaFree(root_powers_);
+            if (scaled_root_powers_)             cudaFree(scaled_root_powers_);
+            if (inv_root_powers_)                cudaFree(inv_root_powers_);
+            if (scaled_inv_root_powers_)         cudaFree(scaled_inv_root_powers_);
+            if (inv_root_powers_div_two_)        cudaFree(inv_root_powers_div_two_);
+            if (scaled_inv_root_powers_div_two_) cudaFree(scaled_inv_root_powers_div_two_);
             inv_degree_modulo_ = 0;
             coeff_count_power_ = 0;
             coeff_count_ = 0;
@@ -71,12 +72,14 @@ namespace seal
 
             // Allocate memory for the tables
 
-           cudaMallocManaged(&root_powers_, coeff_count_*sizeof(std::uint64_t));
-           cudaMallocManaged(&inv_root_powers_, coeff_count_*sizeof(std::uint64_t));
-           cudaMallocManaged(&scaled_root_powers_, coeff_count_*sizeof(std::uint64_t));
-           cudaMallocManaged(&scaled_inv_root_powers_, coeff_count_*sizeof(std::uint64_t));
-           cudaMallocManaged(&inv_root_powers_div_two_, coeff_count_*sizeof(std::uint64_t));
-           cudaMallocManaged(&scaled_inv_root_powers_div_two_, coeff_count_*sizeof(std::uint64_t));
+            cout << "cuda Malloc" << endl;
+            cudaMallocManaged(&root_powers_, coeff_count_*sizeof(std::uint64_t));
+            cudaMallocManaged(&inv_root_powers_, coeff_count_*sizeof(std::uint64_t));
+            cudaMallocManaged(&scaled_root_powers_, coeff_count_*sizeof(std::uint64_t));
+            cudaMallocManaged(&scaled_inv_root_powers_, coeff_count_*sizeof(std::uint64_t));
+            cudaMallocManaged(&inv_root_powers_div_two_, coeff_count_*sizeof(std::uint64_t));
+            cudaMallocManaged(&scaled_inv_root_powers_div_two_, coeff_count_*sizeof(std::uint64_t));
+            cout << "cuda Mallocked" << endl;
 
             // root_powers_ =  (uint64_t*) malloc(coeff_count_*sizeof(std::uint64_t));
             // inv_root_powers_ =  (uint64_t*) malloc(coeff_count_*sizeof(std::uint64_t));
@@ -87,6 +90,7 @@ namespace seal
 
             modulus_ = modulus;
 
+            cout << "generate numbers" << endl;
             // We defer parameter checking to try_minimal_primitive_root(...)
             if (!try_minimal_primitive_root(2 * coeff_count_, modulus_, root_))
             {
@@ -126,6 +130,8 @@ namespace seal
             // Last compute n^(-1) modulo q.
             uint64_t degree_uint = static_cast<uint64_t>(coeff_count_);
             generated_ = try_invert_uint_mod(degree_uint, modulus_, inv_degree_modulo_);
+
+            cout << "completed generation" << endl;
 
             if (!generated_)
             {
@@ -178,9 +184,11 @@ namespace seal
         void ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
         {
             size_t n = size_t(1) << tables.coeff_count_power();
+            cout << "Getting pointers" << endl;
             const uint64_t *root_powers = tables.get_root_powers();
             const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
             uint64_t modulus = tables.modulus().value();
+            cout << "Passing pointers" << endl;
             ntt_negacyclic_harvey_lazy_(operand, root_powers,
               scaled_root_powers, modulus, n);
         }

@@ -1,21 +1,21 @@
 #include "seal/util/smallnttcuda.h"
-#include "seal/util/smallntt.h"
 #include <stdint.h>
-
+#include <iostream>
 
 void ntt_negacyclic_harvey_lazy_(uint64_t *operand,
         const uint64_t *root_powers, const uint64_t *scaled_root_powers,
         uint64_t modulus, size_t n){
-    size_t t = n >> 1;
-    uint64_t *d_operand;
-    cudaMallocManaged(&d_operand, t*sizeof(uint64_t));
-    d_operand = operand;  // Use some form of zerocopy semantics?
+    // size_t t = n >> 1;
+    // uint64_t *d_operand;
+    // cudaMallocManaged(&d_operand, t*sizeof(uint64_t));
+    // d_operand = operand;  // Use some form of zerocopy semantics?
 
+    std::cout << "Calling kernel" << std::endl;
     cuda_ntt_negacyclic_harvey_lazy_<<<1, 1>>>(operand, root_powers,
       scaled_root_powers, modulus, n);
 
     cudaDeviceSynchronize();
-    cudaFree(d_operand);
+    // cudaFree(d_operand);
     // *operand = *d_operand;
 }
 

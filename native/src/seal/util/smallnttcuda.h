@@ -5,7 +5,6 @@
 #pragma once
 #include <cuda_runtime.h>
 #include <stdint.h>
-#include "seal/util/smallntt.h"
 
 void ntt_negacyclic_harvey_lazy_(uint64_t *operand,
         const uint64_t *root_powers, const uint64_t *scaled_root_powers,
