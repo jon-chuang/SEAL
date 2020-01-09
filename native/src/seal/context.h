@@ -351,9 +351,9 @@ namespace seal
 
             util::Pointer<util::BaseConverter> base_converter_;
 
-            util::SmallNTTTables *small_ntt_tables_;
+            util::Pointer<util::SmallNTTTables> small_ntt_tables_;
 
-            util::SmallNTTTables *plain_ntt_tables_;
+            util::Pointer<util::SmallNTTTables> plain_ntt_tables_;
 
             util::Pointer<std::uint64_t> total_coeff_modulus_;
 
