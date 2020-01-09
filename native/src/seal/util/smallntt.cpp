@@ -7,8 +7,8 @@
 #include "seal/smallmodulus.h"
 #include "seal/util/uintarithsmallmod.h"
 #include "seal/util/defines.h"
-#include <cuda_runtime_api.h>
 #include "seal/util/smallnttcuda.h"
+#include <cuda_runtime_api.h>
 #include <algorithm>
 
 using namespace std;
@@ -21,125 +21,110 @@ namespace seal
 {
     namespace util
     {
-        SmallNTTTables::SmallNTTTables(int coeff_count_power,
-            const SmallModulus &modulus, MemoryPoolHandle pool) :
-            pool_(move(pool))
-        {
+      SmallNTTTables::SmallNTTTables(int coeff_count_power,
+          const SmallModulus &modulus, MemoryPoolHandle pool) :
+          pool_(move(pool))
+      {
 #ifdef SEAL_DEBUG
-            if (!pool_)
-            {
-                throw invalid_argument("pool is uninitialized");
-            }
+          if (!pool_)
+          {
+              throw invalid_argument("pool is uninitialized");
+          }
 #endif
-            if (!generate(coeff_count_power, modulus))
-            {
-                // Generation failed; probably modulus wasn't prime.
-                // It is necessary to check generated() after creating
-                // this class.
-            }
-        }
+          if (!generate(coeff_count_power, modulus))
+          {
+              // Generation failed; probably modulus wasn't prime.
+              // It is necessary to check generated() after creating
+              // this class.
+          }
+      }
 
-        void SmallNTTTables::reset()
-        {
-            generated_ = false;
-            modulus_ = SmallModulus();
-            root_ = 0;
+      void SmallNTTTables::reset()
+      {
+          generated_ = false;
+          modulus_ = SmallModulus();
+          root_ = 0;
+          root_powers_.release();
+          scaled_root_powers_.release();
+          inv_root_powers_.release();
+          scaled_inv_root_powers_.release();
+          inv_root_powers_div_two_.release();
+          scaled_inv_root_powers_div_two_.release();
+          inv_degree_modulo_ = 0;
+          coeff_count_power_ = 0;
+          coeff_count_ = 0;
+      }
 
-            if (root_powers_)                    cudaFree(root_powers_);
-            if (scaled_root_powers_)             cudaFree(scaled_root_powers_);
-            if (inv_root_powers_)                cudaFree(inv_root_powers_);
-            if (scaled_inv_root_powers_)         cudaFree(scaled_inv_root_powers_);
-            if (inv_root_powers_div_two_)        cudaFree(inv_root_powers_div_two_);
-            if (scaled_inv_root_powers_div_two_) cudaFree(scaled_inv_root_powers_div_two_);
-            inv_degree_modulo_ = 0;
-            coeff_count_power_ = 0;
-            coeff_count_ = 0;
-        }
+      bool SmallNTTTables::generate(int coeff_count_power,
+          const SmallModulus &modulus)
+      {
+          reset();
 
-        bool SmallNTTTables::generate(int coeff_count_power,
-            const SmallModulus &modulus)
-        {
-            reset();
+          if ((coeff_count_power < get_power_of_two(SEAL_POLY_MOD_DEGREE_MIN)) ||
+              coeff_count_power > get_power_of_two(SEAL_POLY_MOD_DEGREE_MAX))
+          {
+              throw invalid_argument("coeff_count_power out of range");
+          }
 
-            if ((coeff_count_power < get_power_of_two(SEAL_POLY_MOD_DEGREE_MIN)) ||
-                coeff_count_power > get_power_of_two(SEAL_POLY_MOD_DEGREE_MAX))
-            {
-                throw invalid_argument("coeff_count_power out of range");
-            }
+          coeff_count_power_ = coeff_count_power;
+          coeff_count_ = size_t(1) << coeff_count_power_;
 
-            coeff_count_power_ = coeff_count_power;
-            coeff_count_ = size_t(1) << coeff_count_power_;
+          // Allocate memory for the tables
+          root_powers_ = allocate_uint(coeff_count_, pool_);
+          inv_root_powers_ = allocate_uint(coeff_count_, pool_);
+          scaled_root_powers_ = allocate_uint(coeff_count_, pool_);
+          scaled_inv_root_powers_ = allocate_uint(coeff_count_, pool_);
+          inv_root_powers_div_two_ = allocate_uint(coeff_count_, pool_);
+          scaled_inv_root_powers_div_two_ = allocate_uint(coeff_count_, pool_);
+          modulus_ = modulus;
 
-            // Allocate memory for the tables
+          // We defer parameter checking to try_minimal_primitive_root(...)
+          if (!try_minimal_primitive_root(2 * coeff_count_, modulus_, root_))
+          {
+              reset();
+              return false;
+          }
 
-            cout << "cuda Malloc" << endl;
-            cudaMallocManaged(&root_powers_, coeff_count_*sizeof(std::uint64_t));
-            cudaMallocManaged(&inv_root_powers_, coeff_count_*sizeof(std::uint64_t));
-            cudaMallocManaged(&scaled_root_powers_, coeff_count_*sizeof(std::uint64_t));
-            cudaMallocManaged(&scaled_inv_root_powers_, coeff_count_*sizeof(std::uint64_t));
-            cudaMallocManaged(&inv_root_powers_div_two_, coeff_count_*sizeof(std::uint64_t));
-            cudaMallocManaged(&scaled_inv_root_powers_div_two_, coeff_count_*sizeof(std::uint64_t));
-            cout << "cuda Mallocked" << endl;
+          uint64_t inverse_root;
+          if (!try_invert_uint_mod(root_, modulus_, inverse_root))
+          {
+              reset();
+              return false;
+          }
 
-            // root_powers_ =  (uint64_t*) malloc(coeff_count_*sizeof(std::uint64_t));
-            // inv_root_powers_ =  (uint64_t*) malloc(coeff_count_*sizeof(std::uint64_t));
-            // scaled_root_powers_ =  (uint64_t*) malloc(coeff_count_*sizeof(std::uint64_t));
-            // scaled_inv_root_powers_ =  (uint64_t*) malloc(coeff_count_*sizeof(std::uint64_t));
-            // inv_root_powers_div_two_ =  (uint64_t*) malloc(coeff_count_*sizeof(std::uint64_t));
-            // scaled_inv_root_powers_div_two_ =  (uint64_t*) malloc(coeff_count_*sizeof(std::uint64_t));
+          // Populate the tables storing (scaled version of) powers of root
+          // mod q in bit-scrambled order.
+          ntt_powers_of_primitive_root(root_, root_powers_.get());
+          ntt_scale_powers_of_primitive_root(root_powers_.get(),
+              scaled_root_powers_.get());
 
-            modulus_ = modulus;
+          // Populate the tables storing (scaled version of) powers of
+          // (root)^{-1} mod q in bit-scrambled order.
+          ntt_powers_of_primitive_root(inverse_root, inv_root_powers_.get());
+          ntt_scale_powers_of_primitive_root(inv_root_powers_.get(),
+              scaled_inv_root_powers_.get());
 
-            cout << "generate numbers" << endl;
-            // We defer parameter checking to try_minimal_primitive_root(...)
-            if (!try_minimal_primitive_root(2 * coeff_count_, modulus_, root_))
-            {
-                reset();
-                return false;
-            }
+          // Populate the tables storing (scaled version of ) 2 times
+          // powers of roots^-1 mod q  in bit-scrambled order.
+          for (size_t i = 0; i < coeff_count_; i++)
+          {
+              inv_root_powers_div_two_[i] =
+                  div2_uint_mod(inv_root_powers_[i], modulus_);
+          }
+          ntt_scale_powers_of_primitive_root(inv_root_powers_div_two_.get(),
+              scaled_inv_root_powers_div_two_.get());
 
-            uint64_t inverse_root;
-            if (!try_invert_uint_mod(root_, modulus_, inverse_root))
-            {
-                reset();
-                return false;
-            }
+          // Last compute n^(-1) modulo q.
+          uint64_t degree_uint = static_cast<uint64_t>(coeff_count_);
+          generated_ = try_invert_uint_mod(degree_uint, modulus_, inv_degree_modulo_);
 
-            // Populate the tables storing (scaled version of) powers of root
-            // mod q in bit-scrambled order.
-            ntt_powers_of_primitive_root(root_, root_powers_);
-            ntt_scale_powers_of_primitive_root(root_powers_,
-                scaled_root_powers_);
-
-            // Populate the tables storing (scaled version of) powers of
-            // (root)^{-1} mod q in bit-scrambled order.
-            ntt_powers_of_primitive_root(inverse_root, inv_root_powers_);
-            ntt_scale_powers_of_primitive_root(inv_root_powers_,
-                scaled_inv_root_powers_);
-
-            // Populate the tables storing (scaled version of ) 2 times
-            // powers of roots^-1 mod q  in bit-scrambled order.
-            for (size_t i = 0; i < coeff_count_; i++)
-            {
-                inv_root_powers_div_two_[i] =
-                    div2_uint_mod(inv_root_powers_[i], modulus_);
-            }
-            ntt_scale_powers_of_primitive_root(inv_root_powers_div_two_,
-                scaled_inv_root_powers_div_two_);
-
-            // Last compute n^(-1) modulo q.
-            uint64_t degree_uint = static_cast<uint64_t>(coeff_count_);
-            generated_ = try_invert_uint_mod(degree_uint, modulus_, inv_degree_modulo_);
-
-            cout << "completed generation" << endl;
-
-            if (!generated_)
-            {
-                reset();
-                return false;
-            }
-            return true;
-        }
+          if (!generated_)
+          {
+              reset();
+              return false;
+          }
+          return true;
+      }
 
         void SmallNTTTables::ntt_powers_of_primitive_root(uint64_t root,
             uint64_t *destination) const
@@ -184,16 +169,14 @@ namespace seal
         void ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
         {
             size_t n = size_t(1) << tables.coeff_count_power();
-            cout << "Getting pointers" << endl;
             const uint64_t *root_powers = tables.get_root_powers();
             const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
             uint64_t modulus = tables.modulus().value();
-            cout << "Passing pointers" << endl;
             ntt_negacyclic_harvey_lazy_(operand, root_powers,
               scaled_root_powers, modulus, n);
         }
 
-        void cuda_ntt_negacyclic_harvey_lazy(
+        void ntt_negacyclic_harvey_lazy__(
           uint64_t *operand,
           const uint64_t *root_powers, const uint64_t *scaled_root_powers,
           uint64_t modulus, size_t n

@@ -8,7 +8,7 @@
 #include "seal/util/pointer.h"
 #include "seal/memorymanager.h"
 #include "seal/smallmodulus.h"
-
+#include "seal/util/smallnttcuda.h"
 
 namespace seal
 {
@@ -54,41 +54,41 @@ namespace seal
             -> const std::uint64_t*
 
             {
-                return root_powers_;
+                return root_powers_.get();
             }
 
             SEAL_NODISCARD inline auto get_scaled_root_powers() const
             -> const std::uint64_t*
 
             {
-                return scaled_root_powers_;
+                return scaled_root_powers_.get();
             }
 
             SEAL_NODISCARD inline auto get_inv_root_powers() const
             -> const std::uint64_t*
 
             {
-                return inv_root_powers_;
+                return inv_root_powers_.get();
             }
 
             SEAL_NODISCARD inline auto get_scaled_inv_root_powers() const
             -> const std::uint64_t*
 
             {
-                return scaled_inv_root_powers_;
+                return scaled_inv_root_powers_.get();
             }
 
             SEAL_NODISCARD inline auto get_inv_root_powers_div_two() const
             -> const std::uint64_t*
 
             {
-                return inv_root_powers_div_two_;
+                return inv_root_powers_div_two_.get();
             }
 
             SEAL_NODISCARD inline auto get_scaled_inv_root_powers_div_two() const
               -> const std::uint64_t*
             {
-                return scaled_inv_root_powers_div_two_;
+                return scaled_inv_root_powers_div_two_.get();
             }
 
 
@@ -175,16 +175,16 @@ namespace seal
             std::uint64_t root_ = 0;
 
             // Size coeff_count_
-            std::uint64_t* root_powers_;
+            Pointer<decltype(root_)> root_powers_;
 
             // Size coeff_count_
-            std::uint64_t* scaled_root_powers_;
+            Pointer<decltype(root_)> scaled_root_powers_;
 
             // Size coeff_count_
-            std::uint64_t* inv_root_powers_div_two_;
+            Pointer<decltype(root_)> inv_root_powers_div_two_;
 
             // Size coeff_count_
-            std::uint64_t* scaled_inv_root_powers_div_two_;
+            Pointer<decltype(root_)> scaled_inv_root_powers_div_two_;
 
             int coeff_count_power_ = 0;
 
@@ -193,10 +193,10 @@ namespace seal
             SmallModulus modulus_;
 
             // Size coeff_count_
-            std::uint64_t* inv_root_powers_;
+            Pointer<decltype(root_)> inv_root_powers_;
 
             // Size coeff_count_
-            std::uint64_t* scaled_inv_root_powers_;
+            Pointer<decltype(root_)> scaled_inv_root_powers_;
 
             std::uint64_t inv_degree_modulo_ = 0;
 
