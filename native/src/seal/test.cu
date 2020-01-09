@@ -3,13 +3,16 @@
 #include "test.h"
 
 // Kernel function to add the elements of two arrays
-__global__
-void add(int n, float *x, float *y)
+__global__ void add(int n, float *x, float *y)
 {
   int index = threadIdx.x;
   int stride = blockDim.x;
   for (int i = index; i < n; i += stride)
       y[i] = x[i] + y[i];
+}
+
+__global__ void build_table(){
+  int i;
 }
 
 namespace seal
@@ -50,5 +53,10 @@ namespace seal
     cudaFree(y);
 
     return 0;
+  }
+
+  int cuda_unified_mem(void)
+  {
+    int i;
   }
 }
