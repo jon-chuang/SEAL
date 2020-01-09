@@ -6,25 +6,24 @@ using namespace std;
 void ntt_negacyclic_harvey_lazy_(uint64_t *operand,
         const uint64_t *root_powers, const uint64_t *scaled_root_powers,
         uint64_t modulus, size_t n){
-    size_t t = n >> 1;
     uint64_t *d_operand, *d_root_powers, *d_scaled_root_powers;
 
-    cudaMalloc((void**)&d_operand, t*sizeof(uint64_t));
+    cudaMalloc((void**)&d_operand, n*sizeof(uint64_t));
     cudaMalloc((void**)&d_root_powers, n*sizeof(uint64_t));
     cudaMalloc((void**)&d_scaled_root_powers, n*sizeof(uint64_t));
 
     cudaMemcpy(d_operand, operand,
-              t*sizeof(uint64_t), cudaMemcpyHostToDevice);
+              n*sizeof(uint64_t), cudaMemcpyHostToDevice);
     cudaMemcpy(d_root_powers, root_powers,
               n*sizeof(uint64_t), cudaMemcpyHostToDevice);
     cudaMemcpy(d_scaled_root_powers, scaled_root_powers,
               n*sizeof(uint64_t), cudaMemcpyHostToDevice);
 
-    cuda_ntt_negacyclic_harvey_lazy_<<<1, 1>>>(d_operand, d_root_powers,
+    cuda_ntt_negacyclic_harvey_lazy_<<<1, 32>>>(d_operand, d_root_powers,
       d_scaled_root_powers, modulus, n);
 
     cudaMemcpy(operand, d_operand,
-              t*sizeof(uint64_t),cudaMemcpyDeviceToHost);
+              n*sizeof(uint64_t),cudaMemcpyDeviceToHost);
 
     cudaFree(d_operand);
     cudaFree(d_root_powers);

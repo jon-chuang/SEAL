@@ -205,7 +205,7 @@ namespace seal
         void ntt_negacyclic_harvey_lazy(std::uint64_t *operand,
             const SmallNTTTables &tables);
 
-        void cuda_ntt_negacyclic_harvey_lazy(
+        void ntt_negacyclic_harvey_lazy__(
           uint64_t *operand,
           const uint64_t *root_powers, const uint64_t *scaled_root_powers,
           uint64_t modulus, size_t n
