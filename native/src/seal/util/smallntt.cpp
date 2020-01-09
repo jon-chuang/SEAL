@@ -8,7 +8,7 @@
 #include "seal/util/uintarithsmallmod.h"
 #include "seal/util/defines.h"
 #include <cuda_runtime.h>
-//#include "seal/util/smallnttcuda.h"
+#include "seal/util/smallnttcuda.h"
 #include <algorithm>
 
 using namespace std;
@@ -178,28 +178,16 @@ namespace seal
         void ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
         {
             size_t n = size_t(1) << tables.coeff_count_power();
-            size_t t = n >> 1;
-
-            uint64_t *d_operand;
-            cudaMallocManaged(&d_operand, t*sizeof(uint64_t));
-            d_operand = operand;  // Use some form of zerocopy semantics?
-
             const uint64_t *root_powers = tables.get_root_powers();
             const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
             uint64_t modulus = tables.modulus().value();
-
-            cuda_ntt_negacyclic_harvey_lazy(operand, root_powers,
-              scaled_root_powers, tables, modulus, n);
-
-            cudaDeviceSynchronize();
-            cudaFree(d_operand);
-            // *operand = *d_operand;
+            ntt_negacyclic_harvey_lazy_(operand, root_powers,
+              scaled_root_powers, modulus, n);
         }
 
         void cuda_ntt_negacyclic_harvey_lazy(
           uint64_t *operand,
           const uint64_t *root_powers, const uint64_t *scaled_root_powers,
-          const SmallNTTTables &tables,
           uint64_t modulus, size_t n
         ){
             uint64_t two_times_modulus = modulus * 2;
@@ -216,9 +204,6 @@ namespace seal
                         size_t j2 = j1 + t;
                         const uint64_t W = root_powers[m + i];
                         const uint64_t Wprime = scaled_root_powers[m + i];
-
-                        // cout << root_powers[m + i] << " "s << tables.get_from_root_powers(m + i) << endl;
-                        // cout << scaled_root_powers[m + i] << " "s << tables.get_from_scaled_root_powers(m + i) << endl;
 
                         uint64_t *X = operand + j1;
                         uint64_t *Y = X + t;

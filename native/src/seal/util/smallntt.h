@@ -9,6 +9,7 @@
 #include "seal/memorymanager.h"
 #include "seal/smallmodulus.h"
 
+
 namespace seal
 {
     namespace util
@@ -207,7 +208,6 @@ namespace seal
         void cuda_ntt_negacyclic_harvey_lazy(
           uint64_t *operand,
           const uint64_t *root_powers, const uint64_t *scaled_root_powers,
-          const SmallNTTTables &tables,
           uint64_t modulus, size_t n
         );
 
