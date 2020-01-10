@@ -9,4 +9,4 @@ make -j8
 cd ../examples
 make -j8
 cd ../..
-./native/bin/sealtest
+#./native/bin/sealtest

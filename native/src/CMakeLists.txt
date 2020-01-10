@@ -5,6 +5,9 @@ cmake_minimum_required(VERSION 3.12)
 
 project(SEAL VERSION 3.4.5 LANGUAGES CXX C CUDA)
 
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_61 -gencode=arch=compute_61,code=sm_61 -rdc=true --cudart shared -lnvToolsExt ")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lnvToolsExt -L/usr/local/cuda-10.2/targets/x86_64-linux/lib")
+
 if(MSVC)
     if(ALLOW_COMMAND_LINE_BUILD)
         message(STATUS "Configuring for Visual Studio")
@@ -352,7 +355,7 @@ if(SEAL_LIB_BUILD_TYPE STREQUAL "Shared")
     set_target_properties(seal PROPERTIES
         SOVERSION ${SEAL_VERSION_MAJOR}.${SEAL_VERSION_MINOR})
 else()
-    add_library(seal STATIC "" seal/util/smallnttcuda.h)
+    add_library(seal STATIC "" seal/util/smallnttcuda.cuh)
 
     # For a static library indicate version in the filename
     set_target_properties(seal PROPERTIES OUTPUT_NAME seal-${SEAL_VERSION_MAJOR}.${SEAL_VERSION_MINOR})
@@ -393,6 +396,8 @@ if(SEAL_USE_ZLIB)
     # Link ZLIB::ZLIB with seal
     target_link_libraries(seal PRIVATE ZLIB::ZLIB)
 endif()
+
+target_link_libraries(seal PRIVATE -lnvToolsExt -L/usr/local/cuda-10.2/targets/x86_64-linux/lib)
 
 # Associate seal to export SEALTargets
 install(TARGETS seal EXPORT SEALTargets

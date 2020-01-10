@@ -7,7 +7,7 @@
 #include "seal/smallmodulus.h"
 #include "seal/util/uintarithsmallmod.h"
 #include "seal/util/defines.h"
-#include "seal/util/smallnttcuda.h"
+#include "seal/util/smallnttcuda.cuh"
 #include <cuda_runtime_api.h>
 #include <algorithm>
 
@@ -257,14 +257,22 @@ namespace seal
             }
         }
 
-        // Inverse negacyclic NTT using Harvey's butterfly. (See Patrick Longa and Michael Naehrig).
         void inverse_ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
         {
-            uint64_t modulus = tables.modulus().value();
-            uint64_t two_times_modulus = modulus * 2;
-
-            // return the bit-reversed order of NTT.
             size_t n = size_t(1) << tables.coeff_count_power();
+            const uint64_t *inv_root_powers_div_two = tables.get_inv_root_powers_div_two();
+            const uint64_t *scaled_inv_root_powers_div_two = tables.get_scaled_inv_root_powers_div_two();
+            uint64_t modulus = tables.modulus().value();
+            inverse_ntt_negacyclic_harvey_lazy_(operand, inv_root_powers_div_two,
+              scaled_inv_root_powers_div_two, modulus, n);
+        }
+
+        // Inverse negacyclic NTT using Harvey's butterfly. (See Patrick Longa and Michael Naehrig).
+        void inverse_ntt_negacyclic_harvey_lazy__(uint64_t *operand,
+            const uint64_t *inv_root_powers_div_two, const uint64_t *scaled_inv_root_powers_div_two,
+            uint64_t modulus, size_t n)
+        {
+            uint64_t two_times_modulus = modulus * 2;
             size_t t = 1;
 
             for (size_t m = n; m > 1; m >>= 1)
@@ -277,8 +285,8 @@ namespace seal
                     {
                         size_t j2 = j1 + t;
                         // Need the powers of phi^{-1} in bit-reversed order
-                        const uint64_t W = tables.get_from_inv_root_powers_div_two(h + i);
-                        const uint64_t Wprime = tables.get_from_scaled_inv_root_powers_div_two(h + i);
+                        const uint64_t W = inv_root_powers_div_two[h + i];
+                        const uint64_t Wprime = scaled_inv_root_powers_div_two[h + i];
 
                         uint64_t *U = operand + j1;
                         uint64_t *V = U + t;
@@ -320,8 +328,8 @@ namespace seal
                     {
                         size_t j2 = j1 + t;
                         // Need the powers of  phi^{-1} in bit-reversed order
-                        const uint64_t W = tables.get_from_inv_root_powers_div_two(h + i);
-                        const uint64_t Wprime = tables.get_from_scaled_inv_root_powers_div_two(h + i);
+                        const uint64_t W = inv_root_powers_div_two[h + i];
+                        const uint64_t Wprime = scaled_inv_root_powers_div_two[h + i];
 
                         uint64_t *U = operand + j1;
                         uint64_t *V = U + t;

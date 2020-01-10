@@ -13,6 +13,7 @@
 #include "seal/util/polyarithsmallmod.h"
 #include "seal/util/scalingvariant.h"
 #include "seal/util/numth.h"
+#include "nvToolsExtCuda.h"
 
 using namespace std;
 using namespace seal::util;
@@ -2523,6 +2524,9 @@ namespace seal
         size_t kswitch_keys_index,
         MemoryPoolHandle pool)
     {
+
+        nvtxNameOsThread(0,"InputVideo");
+        nvtxRangePush(__FUNCTION__);
         auto parms_id = encrypted.parms_id();
         auto &context_data = *context_->get_context_data(parms_id);
         auto &parms = context_data.parms();
@@ -2782,5 +2786,7 @@ namespace seal
                     encrypted_ptr + j * coeff_count);
             }
         }
+        // .. do some CPU computing here
+        nvtxRangePop();
     }
 }

@@ -8,7 +8,6 @@
 #include "seal/util/pointer.h"
 #include "seal/memorymanager.h"
 #include "seal/smallmodulus.h"
-#include "seal/util/smallnttcuda.h"
 
 namespace seal
 {
@@ -237,6 +236,10 @@ namespace seal
 
         void inverse_ntt_negacyclic_harvey_lazy(std::uint64_t *operand,
             const SmallNTTTables &tables);
+
+        void inverse_ntt_negacyclic_harvey_lazy__(uint64_t *operand,
+            const uint64_t *inv_root_powers_div_two, const uint64_t *scaled_inv_root_powers_div_two,
+            uint64_t modulus, size_t n);
 
         inline void inverse_ntt_negacyclic_harvey(std::uint64_t *operand,
             const SmallNTTTables &tables)
