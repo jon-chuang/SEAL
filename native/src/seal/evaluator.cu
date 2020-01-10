@@ -1,29 +1,52 @@
 #include "seal/util/smallnttcuda.cuh"
-void switch_key_inplace(){
+
+using namespace seal;
+
+void switch_key_inplace_(size_t& coeff_count, size_t& rns_mod_count,
+    const uint64_t *target, seal::scheme_type& scheme,
+    const seal::util::Pointer<seal::util::SmallNTTTables>& small_ntt_tables,
+    size_t& key_mod_count, size_t& decomp_mod_count,
+    const std::vector<seal::SmallModulus>& key_modulus,
+    const std::vector<seal::PublicKey>& key_vector,
+    seal::Ciphertext& encrypted,
+    const seal::util::Pointer<long unsigned int, void>& modswitch_factors,
+    seal::MemoryPoolHandle& pool)
+{
         // Temporary results
-        Pointer<uint64_t> temp_poly[2] {
-            allocate_zero_poly(2 * coeff_count, rns_mod_count, pool),
-            allocate_zero_poly(2 * coeff_count, rns_mod_count, pool)
-        };
+        uint64_t* temp_poly[2][2 * coeff_count * rns_mod_count] {0};
+        cudaMallocManaged(&temp_poly[0], 2 * coeff_count * rns_mod_count * sizeof(uint64_t));
+        cudaMallocManaged(&temp_poly[1], 2 * coeff_count * rns_mod_count * sizeof(uint64_t));
 
         // RNS decomposition index = key index
         for (size_t i = 0; i < decomp_mod_count; i++)
         {
             // For each RNS decomposition, multiply with key data and sum up.
-            auto local_small_poly_0(allocate_uint(coeff_count, pool));
-            auto local_small_poly_1(allocate_uint(coeff_count, pool));
-            auto local_small_poly_2(allocate_uint(coeff_count, pool));
+            uint64_t *local_small_poly_0, *local_small_poly_1, *local_small_poly_2,
+            cudaMallocManaged(local_small_poly_0, coeff_count*sizeof(uint64_t));
+            cudaMallocManaged(local_small_poly_1, coeff_count*sizeof(uint64_t));
+            cudaMallocManaged(local_small_poly_2, coeff_count*sizeof(uint64_t));
 
             const uint64_t *local_encrypted_ptr = nullptr;
             set_uint_uint(
                 target + i * coeff_count,
                 coeff_count,
-                local_small_poly_0.get());
+                local_small_poly_0;
             if (scheme == scheme_type::CKKS)
             {
-                inverse_ntt_negacyclic_harvey(
-                    local_small_poly_0.get(),
-                    small_ntt_tables[i]);
+                size_t n = size_t(1) << small_ntt_tables[i].coeff_count_power();
+                const uint64_t *inv_root_powers_div_two =
+                    small_ntt_tables[i].get_inv_root_powers_div_two();
+                const uint64_t *scaled_inv_root_powers_div_two =
+                    small_ntt_tables[i].get_scaled_inv_root_powers_div_two();
+                uint64_t modulus = small_ntt_tables[i].modulus().value();
+
+                size_t blocksize = min(n/2, size_t(1024));
+
+                dim3 block_dim(blocksize, 1, 1);
+                dim3 grid_dim(n/(2*blocksize), 1, 1);
+
+                cuda_inverse_ntt_negacyclic_harvey<<<grid_dim, block_dim>>>(local_small_poly_0, inv_root_powers_div_two,
+                  scaled_inv_root_powers_div_two, modulus, n);
             }
             // Key RNS representation
             for (size_t j = 0; j < rns_mod_count; j++)
@@ -39,24 +62,34 @@ void switch_key_inplace(){
                     if (key_modulus[i].value() <= key_modulus[index].value())
                     {
                         set_uint_uint(
-                            local_small_poly_0.get(),
+                            local_small_poly_0,
                             coeff_count,
-                            local_small_poly_1.get());
+                            local_small_poly_1);
                     }
                     else
                     {
                         modulo_poly_coeffs_63(
-                            local_small_poly_0.get(),
+                            local_small_poly_0,
                             coeff_count,
                             key_modulus[index],
-                            local_small_poly_1.get());
+                            local_small_poly_1);
                     }
 
                     // Lazy reduction, output in [0, 4q).
-                    ntt_negacyclic_harvey_lazy(
-                        local_small_poly_1.get(),
-                        small_ntt_tables[index]);
-                    local_encrypted_ptr = local_small_poly_1.get();
+
+                    size_t n = size_t(1) << small_ntt_tables[index].coeff_count_power();
+                    const uint64_t *root_powers = small_ntt_tables[index].get_root_powers();
+                    const uint64_t *scaled_root_powers = small_ntt_tables[index].get_scaled_root_powers();
+                    uint64_t modulus = small_ntt_tables[index].modulus().value();
+
+                    size_t blocksize = min(n/2, size_t(1024));
+
+                    dim3 block_dim(blocksize, 1, 1);
+                    dim3 grid_dim(n/(2*blocksize), 1, 1);
+
+                    cuda_ntt_negacyclic_harvey_lazy_<<<grid_dim, block_dim>>>(operand, root_powers,
+                      scaled_root_powers, modulus, n);
+                    local_encrypted_ptr = local_small_poly_1;
                 }
                 // Two components in key
                 for (size_t k = 0; k < 2; k++)
@@ -73,12 +106,12 @@ void switch_key_inplace(){
                             key_ptr[(index * coeff_count) + l],
                             local_wide_product);
                         local_carry = add_uint64(
-                            temp_poly[k].get()[(j * coeff_count + l) * 2],
+                            temp_poly[k][(j * coeff_count + l) * 2],
                             local_wide_product[0],
                             &local_low_word);
-                        temp_poly[k].get()[(j * coeff_count + l) * 2] =
+                        temp_poly[k][(j * coeff_count + l) * 2] =
                             local_low_word;
-                        temp_poly[k].get()[(j * coeff_count + l) * 2 + 1] +=
+                        temp_poly[k][(j * coeff_count + l) * 2 + 1] +=
                             local_wide_product[1] + local_carry;
                     }
                 }
@@ -87,11 +120,12 @@ void switch_key_inplace(){
 
         // Results are now stored in temp_poly[k]
         // Modulus switching should be performed
-        auto local_small_poly(allocate_uint(coeff_count, pool));
+        uint64_t *local_small_poly;
+        cudaMallocManaged(&local_small_poly, coeff_count*sizeof(uint64_t));
         for (size_t k = 0; k < 2; k++)
         {
             // Reduce (ct mod 4qk) mod qk
-            uint64_t *temp_poly_ptr = temp_poly[k].get() +
+            uint64_t *temp_poly_ptr = temp_poly[k] +
                 decomp_mod_count * coeff_count * 2;
             for (size_t l = 0; l < coeff_count; l++)
             {
@@ -100,10 +134,25 @@ void switch_key_inplace(){
                     key_modulus[key_mod_count - 1]);
             }
             // Lazy reduction, they are then reduced mod qi
-            uint64_t *temp_last_poly_ptr = temp_poly[k].get() + decomp_mod_count * coeff_count * 2;
-            inverse_ntt_negacyclic_harvey_lazy(
-                temp_last_poly_ptr,
-                small_ntt_tables[key_mod_count - 1]);
+            uint64_t *temp_last_poly_ptr = temp_poly[k] + decomp_mod_count * coeff_count * 2;
+
+/// KERNEL CALL
+            size_t n = size_t(1) << small_ntt_tables[key_mod_count - 1].coeff_count_power();
+            const uint64_t *inv_root_powers_div_two =
+                small_ntt_tables[key_mod_count - 1].get_inv_root_powers_div_two();
+            const uint64_t *scaled_inv_root_powers_div_two =
+                small_ntt_tables[key_mod_count - 1].get_scaled_inv_root_powers_div_two();
+            uint64_t modulus = small_ntt_tables[key_mod_count - 1].modulus().value();
+
+            size_t blocksize = min(n/2, size_t(1024));
+
+            dim3 block_dim(blocksize, 1, 1);
+            dim3 grid_dim(n/(2*blocksize), 1, 1);
+
+            cuda_inverse_ntt_negacyclic_harvey_lazy<<<grid_dim, block_dim>>>
+                (temp_last_poly_ptr, inv_root_powers_div_two,
+                scaled_inv_root_powers_div_two, modulus, n);
+/// KERNEL CALL END
 
             // Add (p-1)/2 to change from flooring to rounding.
             uint64_t half = key_modulus[key_mod_count - 1].value() >> 1;
@@ -116,7 +165,7 @@ void switch_key_inplace(){
             uint64_t *encrypted_ptr = encrypted.data(k);
             for (size_t j = 0; j < decomp_mod_count; j++)
             {
-                temp_poly_ptr = temp_poly[k].get() + j * coeff_count * 2;
+                temp_poly_ptr = temp_poly[k] + j * coeff_count * 2;
                 // (ct mod 4qi) mod qi
                 for (size_t l = 0; l < coeff_count; l++)
                 {
@@ -129,32 +178,46 @@ void switch_key_inplace(){
                     temp_last_poly_ptr,
                     coeff_count,
                     key_modulus[j],
-                    local_small_poly.get());
+                    local_small_poly);
 
                 uint64_t half_mod = barrett_reduce_63(half, key_modulus[j]);
                 for (size_t l = 0; l < coeff_count; l++)
                 {
-                    local_small_poly.get()[l] = sub_uint_uint_mod(local_small_poly.get()[l],
+                    local_small_poly[l] = sub_uint_uint_mod(local_small_poly[l],
                         half_mod,
                         key_modulus[j]);
                 }
 
                 if (scheme == scheme_type::CKKS)
                 {
-                    cuda_ntt_negacyclic_harvey_(
-                        local_small_poly.get(),
-                        small_ntt_tables[j]);
+                    size_t n = size_t(1) << small_ntt_tables[j].coeff_count_power();
+                    const uint64_t *root_powers = small_ntt_tables[j].get_root_powers();
+                    const uint64_t *scaled_root_powers = small_ntt_tables[j].get_scaled_root_powers();
+                    uint64_t modulus = small_ntt_tables[j].modulus().value();
+                    cuda_ntt_negacyclic_harvey_<<<grid_dim, block_dim>>>
+                      (operand, root_powers, scaled_root_powers, modulus, n);
                 }
                 else if (scheme == scheme_type::BFV)
                 {
-                    cuda_inverse_ntt_negacyclic_harvey_(
-                        temp_poly_ptr,
-                        small_ntt_tables[j]);
+                    size_t n = size_t(1) << small_ntt_tables[j].coeff_count_power();
+                    const uint64_t *inv_root_powers_div_two =
+                        small_ntt_tables[j].get_inv_root_powers_div_two();
+                    const uint64_t *scaled_inv_root_powers_div_two =
+                      small_ntt_tables[j].get_scaled_inv_root_powers_div_two();
+                    uint64_t modulus = small_ntt_tables[j].modulus().value();
+
+                    size_t blocksize = min(n/2, size_t(1024));
+
+                    dim3 block_dim(blocksize, 1, 1);
+                    dim3 grid_dim(n/(2*blocksize), 1, 1);
+
+                    cuda_inverse_ntt_negacyclic_harvey<<<grid_dim, block_dim>>>(temp_poly_ptr, inv_root_powers_div_two,
+                      scaled_inv_root_powers_div_two, modulus, n);
                 }
                 // ((ct mod qi) - (ct mod qk)) mod qi
                 sub_poly_poly_coeffmod(
                     temp_poly_ptr,
-                    local_small_poly.get(),
+                    local_small_poly,
                     coeff_count,
                     key_modulus[j],
                     temp_poly_ptr);

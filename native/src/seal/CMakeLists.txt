@@ -13,6 +13,7 @@ target_sources(seal
         ${CMAKE_CURRENT_LIST_DIR}/encryptionparams.cpp
         ${CMAKE_CURRENT_LIST_DIR}/encryptor.cpp
         ${CMAKE_CURRENT_LIST_DIR}/evaluator.cpp
+  #      ${CMAKE_CURRENT_LIST_DIR}/evaluator.cu
         ${CMAKE_CURRENT_LIST_DIR}/keygenerator.cpp
         ${CMAKE_CURRENT_LIST_DIR}/kswitchkeys.cpp
         ${CMAKE_CURRENT_LIST_DIR}/memorymanager.cpp
@@ -38,6 +39,7 @@ install(
         ${CMAKE_CURRENT_LIST_DIR}/encryptionparams.h
         ${CMAKE_CURRENT_LIST_DIR}/encryptor.h
         ${CMAKE_CURRENT_LIST_DIR}/evaluator.h
+  #      ${CMAKE_CURRENT_LIST_DIR}/evaluator.cuh
         ${CMAKE_CURRENT_LIST_DIR}/galoiskeys.h
         ${CMAKE_CURRENT_LIST_DIR}/intarray.h
         ${CMAKE_CURRENT_LIST_DIR}/keygenerator.h

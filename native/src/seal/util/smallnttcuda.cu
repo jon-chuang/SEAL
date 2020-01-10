@@ -209,13 +209,24 @@ __device__ void cuda_ntt_negacyclic_harvey_lazy_(
     }
 }
 
+__global__ void cuda_ntt_negacyclic_harvey(
+  uint64_t *operand,
+  const uint64_t * __restrict__ root_powers,
+  const uint64_t * __restrict__ scaled_root_powers,
+  uint64_t modulus, size_t n)
+{
+    cuda_ntt_negacyclic_harvey_(operand, root_powers,
+        scaled_root_powers, modulus, n);
+}
+
 __device__ void cuda_ntt_negacyclic_harvey_(
   uint64_t *operand,
   const uint64_t * __restrict__ root_powers,
   const uint64_t * __restrict__ scaled_root_powers,
   uint64_t modulus, size_t n)
 {
-    cuda_ntt_negacyclic_harvey_lazy_(operand, root_powers, scaled_root_powers, modulus, n);
+    cuda_ntt_negacyclic_harvey_lazy_(operand, root_powers,
+        scaled_root_powers, modulus, n);
     uint64_t two_times_modulus = modulus * 2;
 
     uint tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -286,12 +297,20 @@ __device__ void cuda_inverse_ntt_negacyclic_harvey_lazy_(
     }
 }
 
+__global__ void cuda_inverse_ntt_negacyclic_harvey(uint64_t *operand,
+    const uint64_t * __restrict__ inv_root_powers_div_two,
+    const uint64_t * __restrict__ scaled_inv_root_powers_div_two,
+    uint64_t modulus, size_t n)
+{
+    cuda_inverse_ntt_negacyclic_harvey_(operand, inv_root_powers_div_two,
+      scaled_inv_root_powers_div_two, modulus, n);
+}
+
 __device__ void cuda_inverse_ntt_negacyclic_harvey_(uint64_t *operand,
     const uint64_t * __restrict__ inv_root_powers_div_two,
     const uint64_t * __restrict__ scaled_inv_root_powers_div_two,
     uint64_t modulus, size_t n
-)
-{
+){
     cuda_inverse_ntt_negacyclic_harvey_lazy_(operand, inv_root_powers_div_two,
       scaled_inv_root_powers_div_two, modulus, n);
 

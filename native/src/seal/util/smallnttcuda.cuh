@@ -18,6 +18,8 @@ extern void inverse_ntt_negacyclic_harvey_lazy_(uint64_t *operand,
         const uint64_t *scaled_inv_root_powers_div_two,
         uint64_t modulus, size_t n);
 
+
+
 __global__ void cuda_ntt_negacyclic_harvey_lazy(
   std::uint64_t *operand,
   const std::uint64_t * __restrict__ root_powers,
@@ -39,6 +41,8 @@ __device__ void cuda_ntt_negacyclic_harvey_(
   uint64_t modulus, size_t n
 );
 
+
+
 __global__ void cuda_inverse_ntt_negacyclic_harvey_lazy(
     uint64_t *operand,
     const uint64_t * __restrict__ inv_root_powers_div_two,
@@ -47,6 +51,13 @@ __global__ void cuda_inverse_ntt_negacyclic_harvey_lazy(
 );
 
 __device__ void cuda_inverse_ntt_negacyclic_harvey_lazy_(
+    uint64_t *operand,
+    const uint64_t * __restrict__ inv_root_powers_div_two,
+    const uint64_t * __restrict__ scaled_inv_root_powers_div_two,
+    uint64_t modulus, size_t n
+);
+
+__global__ void cuda_inverse_ntt_negacyclic_harvey(
     uint64_t *operand,
     const uint64_t * __restrict__ inv_root_powers_div_two,
     const uint64_t * __restrict__ scaled_inv_root_powers_div_two,
