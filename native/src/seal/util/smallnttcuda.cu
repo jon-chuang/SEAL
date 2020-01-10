@@ -29,7 +29,7 @@ void ntt_negacyclic_harvey_lazy_(uint64_t *operand,
     dim3 grid_dim(n/(2*blocksize), 1, 1);
 
     // printf("Launching Kernel %d %d %d\n", n, grid_dim.x, block_dim.x);
-    cuda_ntt_negacyclic_harvey_lazy_<<<grid_dim, block_dim, 2*blocksize*sizeof(uint64_t)>>>
+    cuda_ntt_negacyclic_harvey_lazy<<<grid_dim, block_dim, 2*blocksize*sizeof(uint64_t)>>>
         (d_operand, d_root_powers,d_scaled_root_powers, modulus, n);
 
     gpuErrchk( cudaPeekAtLastError() );
@@ -67,7 +67,7 @@ void inverse_ntt_negacyclic_harvey_lazy_(uint64_t *operand,
     dim3 grid_dim(n/(2*blocksize), 1, 1);
 
     // printf("Launching Kernel %d %d %d\n", n, grid_dim.x, block_dim.x);
-    cuda_inverse_ntt_negacyclic_harvey_lazy_<<<grid_dim, block_dim, 2*blocksize*sizeof(uint64_t)>>>
+    cuda_inverse_ntt_negacyclic_harvey_lazy<<<grid_dim, block_dim, 2*blocksize*sizeof(uint64_t)>>>
         (d_operand, d_inv_root_powers_div_two,d_scaled_inv_root_powers_div_two, modulus, n);
 
     gpuErrchk( cudaPeekAtLastError() );
@@ -83,18 +83,27 @@ void inverse_ntt_negacyclic_harvey_lazy_(uint64_t *operand,
 
 // We divide butterfly into three phases: One where the
 // partition size is larger than 1024, one where the partition size
-// is smaller or equal to 64, and the everything else that sits in the middle.
+// is smaller or equal to 64, and the everything else that sits in the middle
+//
 // In the cross-block phase, we read data from global memory and loop over
 // the lanes by means of a grid stride loop.
 //
 // In phases two and three, we exploit embarassing parallelism
 // In phase 2, we transfer data to shared memory, and perform
-// exchanges block-wise
-//
-// Finally, in the warp-size partition phase, we use __shfl_xor_sync
-// to perform a within-warp butterfly.
+// exchanges block-wise. Finally, in the warp-size partition
+// phase, we use __shfl_xor_sync to perform a within-warp butterfly.
 
-__global__ void cuda_ntt_negacyclic_harvey_lazy_(
+__global__ void cuda_ntt_negacyclic_harvey_lazy(
+  uint64_t *operand,
+  const uint64_t * __restrict__ root_powers,
+  const uint64_t * __restrict__ scaled_root_powers,
+  uint64_t modulus, size_t n
+){
+    cuda_ntt_negacyclic_harvey_lazy_(operand, root_powers,
+      scaled_root_powers, modulus, n);
+}
+
+__device__ void cuda_ntt_negacyclic_harvey_lazy_(
   uint64_t *operand,
   const uint64_t * __restrict__ root_powers,
   const uint64_t * __restrict__ scaled_root_powers,
@@ -200,7 +209,40 @@ __global__ void cuda_ntt_negacyclic_harvey_lazy_(
     }
 }
 
-__global__ void cuda_inverse_ntt_negacyclic_harvey_lazy_(
+__device__ void cuda_ntt_negacyclic_harvey_(
+  uint64_t *operand,
+  const uint64_t * __restrict__ root_powers,
+  const uint64_t * __restrict__ scaled_root_powers,
+  uint64_t modulus, size_t n)
+{
+    cuda_ntt_negacyclic_harvey_lazy_(operand, root_powers, scaled_root_powers, modulus, n);
+    uint64_t two_times_modulus = modulus * 2;
+
+    uint tid = threadIdx.x + blockIdx.x*blockDim.x;
+    for(uint i = tid; i < n; i += blockDim.x*gridDim.x)
+    {
+        if (operand[i] >= two_times_modulus)
+        {
+            operand[i] -= two_times_modulus;
+        }
+        if (operand[i] >= modulus)
+        {
+            operand[i] -= modulus;
+        }
+    }
+}
+
+__global__ void cuda_inverse_ntt_negacyclic_harvey_lazy(
+    uint64_t *operand,
+    const uint64_t * __restrict__ inv_root_powers_div_two,
+    const uint64_t * __restrict__ scaled_inv_root_powers_div_two,
+    uint64_t modulus, size_t n)
+{
+    cuda_inverse_ntt_negacyclic_harvey_lazy_(operand, inv_root_powers_div_two,
+      scaled_inv_root_powers_div_two, modulus, n);
+}
+
+__device__ void cuda_inverse_ntt_negacyclic_harvey_lazy_(
     uint64_t *operand,
     const uint64_t * __restrict__ inv_root_powers_div_two,
     const uint64_t * __restrict__ scaled_inv_root_powers_div_two,
@@ -217,8 +259,7 @@ __global__ void cuda_inverse_ntt_negacyclic_harvey_lazy_(
     {
         size_t h = m >> 1;
 
-        for (size_t k = 0;
-          2*(k*gridDim.x*blockDim.x + tid) < n; k++)
+        for (size_t k = 0; 2*(k*gridDim.x*blockDim.x + tid) < n; k++)
         {
             size_t i = (k*gridDim.x*blockDim.x + tid) / t; // partition number
             size_t local_id = (k*gridDim.x*blockDim.x + tid) % t;
@@ -242,6 +283,25 @@ __global__ void cuda_inverse_ntt_negacyclic_harvey_lazy_(
             operand[j1+local_id+t] = V;
         }
         t <<= 1;
+    }
+}
+
+__device__ void cuda_inverse_ntt_negacyclic_harvey_(uint64_t *operand,
+    const uint64_t * __restrict__ inv_root_powers_div_two,
+    const uint64_t * __restrict__ scaled_inv_root_powers_div_two,
+    uint64_t modulus, size_t n
+)
+{
+    cuda_inverse_ntt_negacyclic_harvey_lazy_(operand, inv_root_powers_div_two,
+      scaled_inv_root_powers_div_two, modulus, n);
+
+    auto tid = threadIdx.x + blockIdx.x*blockDim.x;
+    for(auto i = tid; i < n; i += blockDim.x*gridDim.x)
+    {
+        if (operand[i] >= modulus)
+        {
+            operand[i] -= modulus;
+        }
     }
 }
 
