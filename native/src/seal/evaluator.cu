@@ -116,11 +116,10 @@ namespace seal
                     }
                     else
                     {   printf("LOOPING polycoeffs63\n");
-                        modulo_poly_coeffs_63_(
+                        modulo_poly_coeffs_63(
                             local_small_poly_0,
                             coeff_count,
-                            key_modulus[index].value(),
-                            key_modulus[index].const_ratio().data(),
+                            key_modulus[index],
                             local_small_poly_1);
 
                         gpuErrchk( cudaFree(local_small_poly_0));
@@ -226,11 +225,10 @@ namespace seal
                         key_modulus[j]);
                 }
                 // (ct mod 4qk) mod qi
-                modulo_poly_coeffs_63_(
+                modulo_poly_coeffs_63(
                     temp_last_poly_ptr,
                     coeff_count,
-                    key_modulus[j].value(),
-                    key_modulus[j].const_ratio().data(),
+                    key_modulus[j],
                     local_small_poly);
 
                 uint64_t half_mod = barrett_reduce_63(half, key_modulus[j]);
