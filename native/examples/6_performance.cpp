@@ -598,12 +598,12 @@ void example_bfv_performance_default()
     /*
     Comment out the following to run the biggest example.
     */
-    // cout << endl;
-    // poly_modulus_degree = 32768;
-    // parms.set_poly_modulus_degree(poly_modulus_degree);
-    // parms.set_coeff_modulus(CoeffModulus::BFVDefault(poly_modulus_degree));
-    // parms.set_plain_modulus(786433);
-    // bfv_performance_test(SEALContext::Create(parms));
+    cout << endl;
+    poly_modulus_degree = 32768;
+    parms.set_poly_modulus_degree(poly_modulus_degree);
+    parms.set_coeff_modulus(CoeffModulus::BFVDefault(poly_modulus_degree));
+    parms.set_plain_modulus(786433);
+    bfv_performance_test(SEALContext::Create(parms));
 }
 
 void example_bfv_performance_custom()

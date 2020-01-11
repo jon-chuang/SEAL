@@ -34,6 +34,13 @@ __device__ void cuda_ntt_negacyclic_harvey_lazy_(
   std::uint64_t modulus, size_t n
 );
 
+__global__ void cuda_ntt_negacyclic_harvey(
+  uint64_t *operand,
+  const uint64_t * __restrict__ root_powers,
+  const uint64_t * __restrict__ scaled_root_powers,
+  uint64_t modulus, size_t n
+);
+
 __device__ void cuda_ntt_negacyclic_harvey_(
   uint64_t *operand,
   const uint64_t * __restrict__ root_powers,

@@ -14,6 +14,7 @@
 #include "seal/util/scalingvariant.h"
 #include "seal/util/numth.h"
 #include "seal/encryptionparams.h"
+#include "seal/evaluator.cuh"
 #include "nvToolsExtCuda.h"
 
 using namespace std;
@@ -2602,7 +2603,7 @@ namespace seal
             }
         }
 
-        switch_key_inplace__(coeff_count, rns_mod_count,
+        switch_key_inplace_(coeff_count, rns_mod_count,
             target, scheme, small_ntt_tables,
             key_mod_count, decomp_mod_count, key_modulus,
             key_vector, encrypted, modswitch_factors, pool);
