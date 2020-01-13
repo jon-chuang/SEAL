@@ -13,7 +13,6 @@ target_sources(seal
         ${CMAKE_CURRENT_LIST_DIR}/encryptionparams.cpp
         ${CMAKE_CURRENT_LIST_DIR}/encryptor.cpp
         ${CMAKE_CURRENT_LIST_DIR}/evaluator.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/evaluator.cu
         ${CMAKE_CURRENT_LIST_DIR}/keygenerator.cpp
         ${CMAKE_CURRENT_LIST_DIR}/kswitchkeys.cpp
         ${CMAKE_CURRENT_LIST_DIR}/memorymanager.cpp
@@ -22,7 +21,6 @@ target_sources(seal
         ${CMAKE_CURRENT_LIST_DIR}/randomgen.cpp
         ${CMAKE_CURRENT_LIST_DIR}/serialization.cpp
         ${CMAKE_CURRENT_LIST_DIR}/smallmodulus.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/test.cu
         ${CMAKE_CURRENT_LIST_DIR}/valcheck.cpp
 )
 
@@ -39,7 +37,6 @@ install(
         ${CMAKE_CURRENT_LIST_DIR}/encryptionparams.h
         ${CMAKE_CURRENT_LIST_DIR}/encryptor.h
         ${CMAKE_CURRENT_LIST_DIR}/evaluator.h
-        ${CMAKE_CURRENT_LIST_DIR}/evaluator.cuh
         ${CMAKE_CURRENT_LIST_DIR}/galoiskeys.h
         ${CMAKE_CURRENT_LIST_DIR}/intarray.h
         ${CMAKE_CURRENT_LIST_DIR}/keygenerator.h
@@ -55,7 +52,6 @@ install(
         ${CMAKE_CURRENT_LIST_DIR}/secretkey.h
         ${CMAKE_CURRENT_LIST_DIR}/serialization.h
         ${CMAKE_CURRENT_LIST_DIR}/smallmodulus.h
-        ${CMAKE_CURRENT_LIST_DIR}/test.h
         ${CMAKE_CURRENT_LIST_DIR}/valcheck.h
     DESTINATION
         ${SEAL_INCLUDES_INSTALL_DIR}/seal

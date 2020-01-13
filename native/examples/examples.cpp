@@ -95,10 +95,6 @@ int main(){
 //             example_performance_test();
 //             break;
 //
-//         case 7:
-//             example_cuda_test();
-//             break;
-//
 //         case 0:
 //             return 0;
 //         }

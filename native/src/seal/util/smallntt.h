@@ -8,6 +8,7 @@
 #include "seal/util/pointer.h"
 #include "seal/memorymanager.h"
 #include "seal/smallmodulus.h"
+#include <CL/sycl.hpp>
 
 namespace seal
 {
@@ -203,6 +204,13 @@ namespace seal
 
         void ntt_negacyclic_harvey_lazy(std::uint64_t *operand,
             const SmallNTTTables &tables);
+
+        // SYCL Version
+        void ntt_negacyclic_harvey_lazy_(
+          uint64_t *operand,
+          const uint64_t *root_powers, const uint64_t *scaled_root_powers,
+          uint64_t modulus, size_t n
+        );
 
         void ntt_negacyclic_harvey_lazy__(
           uint64_t *operand,

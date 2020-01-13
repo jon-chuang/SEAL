@@ -33,8 +33,6 @@ void example_performance_test();
 
 void example_ckks_performance_default();
 
-void example_cuda_test();
-
 /*
 Helper function: Prints the name of the example in a fancy banner.
 */

@@ -17,7 +17,6 @@ target_sources(seal
         ${CMAKE_CURRENT_LIST_DIR}/rlwe.cpp
         ${CMAKE_CURRENT_LIST_DIR}/scalingvariant.cpp
         ${CMAKE_CURRENT_LIST_DIR}/smallntt.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/smallnttcuda.cu
         ${CMAKE_CURRENT_LIST_DIR}/uintarith.cpp
         ${CMAKE_CURRENT_LIST_DIR}/uintarithmod.cpp
         ${CMAKE_CURRENT_LIST_DIR}/uintarithsmallmod.cpp
@@ -55,7 +54,6 @@ install(
         ${CMAKE_CURRENT_LIST_DIR}/rlwe.h
         ${CMAKE_CURRENT_LIST_DIR}/scalingvariant.h
         ${CMAKE_CURRENT_LIST_DIR}/smallntt.h
-        ${CMAKE_CURRENT_LIST_DIR}/smallnttcuda.cuh
         ${CMAKE_CURRENT_LIST_DIR}/uintarith.h
         ${CMAKE_CURRENT_LIST_DIR}/uintarithmod.h
         ${CMAKE_CURRENT_LIST_DIR}/uintarithsmallmod.h

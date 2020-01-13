@@ -7,11 +7,11 @@
 #include "seal/smallmodulus.h"
 #include "seal/util/uintarithsmallmod.h"
 #include "seal/util/defines.h"
-#include "seal/util/smallnttcuda.cuh"
-#include <cuda_runtime_api.h>
+#include <CL/sycl.hpp>
 #include <algorithm>
 
 using namespace std;
+using namespace cl;
 
 // Create a .cu version to replace the entire functionality
 // of ntt/intt and tables with minimal data movement
@@ -172,9 +172,123 @@ namespace seal
             const uint64_t *root_powers = tables.get_root_powers();
             const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
             uint64_t modulus = tables.modulus().value();
+
             ntt_negacyclic_harvey_lazy_(operand, root_powers,
               scaled_root_powers, modulus, n);
         }
+
+        void ntt_negacyclic_harvey_lazy_(
+          uint64_t *operand,
+          const uint64_t*  root_powers,
+          const uint64_t* scaled_root_powers,
+          uint64_t modulus, size_t n
+        ){
+            sycl::queue q;
+            sycl::nd_range<1> work_items{sycl::range<1>
+              (1024*((n+1023)/1024)), sycl::range<1>(1024)};
+
+            sycl::buffer<uint64_t> buff_rp(root_powers, n);
+            sycl::buffer<uint64_t> buff_srp(scaled_root_powers, n);
+            sycl::buffer<uint64_t> buff_operand(operand, n);
+
+            q.submit([&](sycl::handler& cgh){
+            auto _rp = buff_rp.get_access<sycl::access::mode::read>(cgh);
+            auto _srp = buff_srp.get_access<sycl::access::mode::read>(cgh);
+            auto _operand = buff_operand.get_access<sycl::access::mode::read_write>(cgh);
+
+            cgh.parallel_for<class ntt_negacyclic_harvey>
+            (work_items, [=](sycl::nd_item<1> it){
+                int tid = it.get_group(0) * work_items.get_local_range().get(0) + it.get_local_id(0);
+
+                uint64_t two_times_modulus = modulus * 2;
+                size_t t = n >> 1;
+
+                for (size_t m = 1; m < n; m <<= 1)
+                {
+                    size_t i = tid / t; // partition number
+                    size_t local_id = tid % t;
+                    size_t j1 = i * 2 * t; // offset
+                    const uint64_t W = _rp[m + i];
+                    const uint64_t Wprime = _srp[m + i];
+
+                    uint64_t currX;
+                    unsigned long long Q;
+
+                    uint64_t X = _operand[j1+local_id];
+                    uint64_t Y = _operand[j1+local_id+t];
+
+                    currX = X - (two_times_modulus & static_cast<uint64_t>(
+                                  -static_cast<int64_t>(X >= two_times_modulus)));
+                    multiply_uint64_hw64(Wprime, Y, &Q);
+                    Q = Y * W - Q * modulus;
+                    _operand[j1+local_id] = currX + Q;
+                    _operand[j1+local_id+t] = currX + (two_times_modulus - Q);
+
+                    t >>= 1;
+                    it.barrier();
+                  }
+              });
+          });
+      }
+
+
+            // // Loop over gridDim
+            // for (size_t offset = tid /(two_times_t);
+            //       offset < (n >> 1); i += gridDim.x*blockDim.x)
+            // {
+            //   for (size_t m = dimBlock.x; m < n; m <<= 1){
+            //       if (t > 32) {
+            //         for (size_t i = 0; i < m; i++)
+            //         {
+            //             size_t j1 = 2 * i * t;
+            //             size_t j2 = j1 + t;
+            //             const uint64_t W = root_powers[m + i];
+            //             const uint64_t Wprime = scaled_root_powers[m + i];
+            //
+            //             uint64_t currX;
+            //             unsigned long long Q;
+            //
+            //             for (size_t j = tid % two_times_t; j < t;
+            //                   j += gridDim.x*)
+            //             {
+            //                 uint64_t X = shared_operand[j];
+            //                 uint64_t Y = shared_operand[j+t];
+            //
+            //                 currX = X - (two_times_modulus & static_cast<uint64_t>(
+            //                               -static_cast<int64_t>(X >= two_times_modulus)));
+            //                 multiply_uint64_hw64_(Wprime, Y, &Q);
+            //                 Q = Y * W - Q * modulus;
+            //                 shared_operand[j] = currX + Q;
+            //                 shared_operand[j+t] = currX + (two_times_modulus - Q);
+            //             }
+            //         }
+            //         __syncthreads();
+            //     } else {
+            //         uint64_t X = shared_operand[tid % blockDim.x];
+            //         uint64_t Y = shared_operand[+t];
+            //
+            //         for (int i=16; i>=1; i/=2){
+            //             if (threadIdx.x & i == 0) swap_test_device(X, Y);
+            //             Y = __shfl_xor_sync(0xFFFFFFFF, X, i);
+            //             if (threadIdx.x & i == 0) swap_test_device(X, Y);
+            //
+            //             currX = X - (two_times_modulus & static_cast<uint64_t>(
+            //                           -static_cast<int64_t>(X >= two_times_modulus)));
+            //             multiply_uint64_hw64_(Wprime, Y, &Q);
+            //             Q = Y * W - Q * modulus;
+            //             X = currX + Q;
+            //             Y = currX + (two_times_modulus - Q);
+            //         }
+            //         for (k=2*, k<, k += 2*)
+            //         shared_operand[] = X;
+            //         shared_operand[+1] = Y;
+            //     }
+            //     t >>= 1;
+            //     two_times_t >>= 1;
+            //     }
+            //     shared_operand[threadIdx.x] = operand[tid]
+            //     operand[] = shared_operand[];
+            // }
 
         void ntt_negacyclic_harvey_lazy__(
           uint64_t *operand,
@@ -263,7 +377,8 @@ namespace seal
             const uint64_t *inv_root_powers_div_two = tables.get_inv_root_powers_div_two();
             const uint64_t *scaled_inv_root_powers_div_two = tables.get_scaled_inv_root_powers_div_two();
             uint64_t modulus = tables.modulus().value();
-            inverse_ntt_negacyclic_harvey_lazy_(operand, inv_root_powers_div_two,
+
+            inverse_ntt_negacyclic_harvey_lazy__(operand, inv_root_powers_div_two,
               scaled_inv_root_powers_div_two, modulus, n);
         }
 

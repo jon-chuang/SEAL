@@ -14,8 +14,7 @@
 #include "seal/util/scalingvariant.h"
 #include "seal/util/numth.h"
 #include "seal/encryptionparams.h"
-#include "seal/evaluator.cuh"
-#include "nvToolsExtCuda.h"
+// #include "nvToolsExtCuda.h"
 
 using namespace std;
 using namespace seal::util;
@@ -2527,8 +2526,8 @@ namespace seal
         size_t kswitch_keys_index,
         MemoryPoolHandle pool)
     {
-        nvtxNameOsThread(0,"InputVideo");
-        nvtxRangePush(__FUNCTION__);
+        // nvtxNameOsThread(0,"InputVideo");
+        // nvtxRangePush(__FUNCTION__);
         auto parms_id = encrypted.parms_id();
         auto &context_data = *context_->get_context_data(parms_id);
         auto &parms = context_data.parms();
@@ -2603,13 +2602,13 @@ namespace seal
             }
         }
 
-        switch_key_inplace_(coeff_count, rns_mod_count,
+        switch_key_inplace__(coeff_count, rns_mod_count,
             target, scheme, small_ntt_tables,
             key_mod_count, decomp_mod_count, key_modulus,
             key_vector, encrypted, modswitch_factors, pool);
 
         // .. do some CPU computing here
-        nvtxRangePop();
+        // nvtxRangePop();
     }
 }
 
