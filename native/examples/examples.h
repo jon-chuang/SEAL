@@ -31,6 +31,8 @@ void example_rotation();
 
 void example_performance_test();
 
+void example_bfv_performance_default();
+
 void example_ckks_performance_default();
 
 /*

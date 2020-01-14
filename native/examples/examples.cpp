@@ -7,7 +7,8 @@ using namespace std;
 using namespace seal;
 
 int main(){
-  example_ckks_performance_default();
+  example_bfv_performance_default();
+  // example_ckks_performance_default();
   printf("Complete\n");
   return 0;
 }

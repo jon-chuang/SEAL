@@ -10,6 +10,8 @@
 #include "seal/smallmodulus.h"
 #include <CL/sycl.hpp>
 
+using namespace cl;
+
 namespace seal
 {
     namespace util
@@ -205,19 +207,6 @@ namespace seal
         void ntt_negacyclic_harvey_lazy(std::uint64_t *operand,
             const SmallNTTTables &tables);
 
-        // SYCL Version
-        void ntt_negacyclic_harvey_lazy_(
-          uint64_t *operand,
-          const uint64_t *root_powers, const uint64_t *scaled_root_powers,
-          uint64_t modulus, size_t n
-        );
-
-        void ntt_negacyclic_harvey_lazy__(
-          uint64_t *operand,
-          const uint64_t *root_powers, const uint64_t *scaled_root_powers,
-          uint64_t modulus, size_t n
-        );
-
         inline void ntt_negacyclic_harvey(std::uint64_t *operand,
             const SmallNTTTables &tables)
         {
@@ -242,12 +231,23 @@ namespace seal
             }
         }
 
+        // SYCL Version
+        void ntt_negacyclic_harvey_(
+          sycl::queue& q,
+          sycl::buffer<uint64_t> buf_operand,
+          sycl::buffer<uint64_t>& buf_irp,
+          sycl::buffer<uint64_t>& buf_sirp,
+          uint64_t modulus, size_t n, bool lazy = false
+        );
+
+        void ntt_negacyclic_harvey_lazy__(
+          uint64_t *operand,
+          const uint64_t *root_powers, const uint64_t *scaled_root_powers,
+          uint64_t modulus, size_t n
+        );
+
         void inverse_ntt_negacyclic_harvey_lazy(std::uint64_t *operand,
             const SmallNTTTables &tables);
-
-        void inverse_ntt_negacyclic_harvey_lazy__(uint64_t *operand,
-            const uint64_t *inv_root_powers_div_two, const uint64_t *scaled_inv_root_powers_div_two,
-            uint64_t modulus, size_t n);
 
         inline void inverse_ntt_negacyclic_harvey(std::uint64_t *operand,
             const SmallNTTTables &tables)
@@ -268,5 +268,17 @@ namespace seal
                 }
             }
         }
+
+        void inverse_ntt_negacyclic_harvey_(
+            sycl::queue& q,
+            sycl::buffer<uint64_t> buf_operand,
+            sycl::buffer<uint64_t>& buf_irp,
+            sycl::buffer<uint64_t>& buf_sirp,
+            uint64_t modulus, size_t n, bool lazy = false
+        );
+
+        void inverse_ntt_negacyclic_harvey_lazy__(uint64_t *operand,
+            const uint64_t *inv_root_powers_div_two, const uint64_t *scaled_inv_root_powers_div_two,
+            uint64_t modulus, size_t n);
     }
 }

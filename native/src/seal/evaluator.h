@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <CL/sycl.hpp>
 #include "seal/context.h"
 #include "seal/relinkeys.h"
 #include "seal/smallmodulus.h"
@@ -19,6 +20,9 @@
 #include "seal/util/common.h"
 #include "seal/kswitchkeys.h"
 #include "seal/valcheck.h"
+
+
+using namespace cl;
 
 namespace seal
 {
@@ -1487,6 +1491,27 @@ namespace seal
             std::size_t key_index,
             MemoryPoolHandle pool = MemoryManager::GetPool());
 
+        void switch_key_inplace_(size_t& coeff_count, size_t& rns_mod_count,
+            const uint64_t *target, scheme_type& scheme,
+            const util::Pointer<util::SmallNTTTables>& small_ntt_tables,
+            size_t& key_mod_count, size_t& decomp_mod_count,
+            const std::vector<SmallModulus>& key_modulus,
+            const std::vector<PublicKey>& key_vector,
+            Ciphertext& encrypted,
+            const util::Pointer<long unsigned int, void>& modswitch_factors,
+            MemoryPoolHandle& pool);
+
+
+        void switch_key_inplace__(size_t& coeff_count, size_t& rns_mod_count,
+            const uint64_t *target, scheme_type& scheme,
+            const util::Pointer<util::SmallNTTTables>& small_ntt_tables,
+            size_t& key_mod_count, size_t& decomp_mod_count,
+            const std::vector<SmallModulus>& key_modulus,
+            const std::vector<PublicKey>& key_vector,
+            Ciphertext& encrypted,
+            const util::Pointer<long unsigned int, void>& modswitch_factors,
+            MemoryPoolHandle& pool);
+
         void multiply_plain_normal(Ciphertext &encrypted, const Plaintext &plain,
             util::MemoryPool &pool);
 
@@ -1499,13 +1524,13 @@ namespace seal
         std::map<std::uint64_t, std::pair<std::uint64_t, std::uint64_t>> Zmstar_to_generator_{};
     };
 }
-
-void switch_key_inplace__(size_t& coeff_count, size_t& rns_mod_count,
-    const uint64_t *target, seal::scheme_type& scheme,
-    const seal::util::Pointer<seal::util::SmallNTTTables>& small_ntt_tables,
-    size_t& key_mod_count, size_t& decomp_mod_count,
-    const std::vector<seal::SmallModulus>& key_modulus,
-    const std::vector<seal::PublicKey>& key_vector,
-    seal::Ciphertext& encrypted,
-    const seal::util::Pointer<long unsigned int, void>& modswitch_factors,
-    seal::MemoryPoolHandle& pool);
+//
+// void switch_key_inplace_(size_t& coeff_count, size_t& rns_mod_count,
+//     const uint64_t *target, scheme_type& scheme,
+//     const util::Pointer<util::SmallNTTTables>& small_ntt_tables,
+//     size_t& key_mod_count, size_t& decomp_mod_count,
+//     const std::vector<SmallModulus>& key_modulus,
+//     const std::vector<PublicKey>& key_vector,
+//     Ciphertext& encrypted,
+//     const util::Pointer<long unsigned int, void>& modswitch_factors,
+//     MemoryPoolHandle& pool);

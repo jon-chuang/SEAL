@@ -166,67 +166,75 @@ namespace seal
         For details, see Michael Naehrig and Patrick Longa.
         */
 
+        // For testing purposes
         void ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
         {
             size_t n = size_t(1) << tables.coeff_count_power();
             const uint64_t *root_powers = tables.get_root_powers();
             const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
             uint64_t modulus = tables.modulus().value();
-
-            ntt_negacyclic_harvey_lazy_(operand, root_powers,
-              scaled_root_powers, modulus, n);
+            // sycl::queue q;
+            // sycl::buffer<uint64_t> buf_rp(root_powers, n);
+            // sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
+            // sycl::buffer<uint64_t> buf_operand(operand, n);
+            //
+            // ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
+            ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
         }
 
-        void ntt_negacyclic_harvey_lazy_(
-          uint64_t *operand,
-          const uint64_t*  root_powers,
-          const uint64_t* scaled_root_powers,
-          uint64_t modulus, size_t n
+        void ntt_negacyclic_harvey_(
+          sycl::queue& q,
+          sycl::buffer<uint64_t> buf_operand,
+          sycl::buffer<uint64_t>& buf_rp,
+          sycl::buffer<uint64_t>& buf_srp,
+          uint64_t modulus, size_t n, bool lazy
         ){
-            sycl::queue q;
             sycl::nd_range<1> work_items{sycl::range<1>
-              (1024*((n+1023)/1024)), sycl::range<1>(1024)};
-
-            sycl::buffer<uint64_t> buff_rp(root_powers, n);
-            sycl::buffer<uint64_t> buff_srp(scaled_root_powers, n);
-            sycl::buffer<uint64_t> buff_operand(operand, n);
+                (1024*((n/2+1023)/(1024))), sycl::range<1>(1024)};
 
             q.submit([&](sycl::handler& cgh){
-            auto _rp = buff_rp.get_access<sycl::access::mode::read>(cgh);
-            auto _srp = buff_srp.get_access<sycl::access::mode::read>(cgh);
-            auto _operand = buff_operand.get_access<sycl::access::mode::read_write>(cgh);
+            auto _rp = buf_rp.get_access<sycl::access::mode::read>(cgh);
+            auto _srp = buf_srp.get_access<sycl::access::mode::read>(cgh);
+            auto _operand = buf_operand.get_access<sycl::access::mode::read_write>(cgh);
 
-            cgh.parallel_for<class ntt_negacyclic_harvey>
-            (work_items, [=](sycl::nd_item<1> it){
-                int tid = it.get_group(0) * work_items.get_local_range().get(0) + it.get_local_id(0);
+            cgh.parallel_for<class _ntt_negacyclic_harvey>
+                (work_items, [=](sycl::nd_item<1> it){
+                    int tid = it.get_group(0) * work_items.get_local_range().get(0) + it.get_local_id(0);
 
-                uint64_t two_times_modulus = modulus * 2;
-                size_t t = n >> 1;
+                    uint64_t two_times_modulus = modulus * 2;
+                    size_t t = n >> 1;
 
-                for (size_t m = 1; m < n; m <<= 1)
-                {
-                    size_t i = tid / t; // partition number
-                    size_t local_id = tid % t;
-                    size_t j1 = i * 2 * t; // offset
-                    const uint64_t W = _rp[m + i];
-                    const uint64_t Wprime = _srp[m + i];
+                    for (size_t m = 1; m < n; m <<= 1)
+                    {
+                        size_t i = tid / t; // partition number
+                        size_t local_id = tid % t;
+                        size_t j1 = i * 2 * t; // offset
+                        const uint64_t W = _rp[m + i];
+                        const uint64_t Wprime = _srp[m + i];
 
-                    uint64_t currX;
-                    unsigned long long Q;
+                        uint64_t currX;
+                        unsigned long long Q;
 
-                    uint64_t X = _operand[j1+local_id];
-                    uint64_t Y = _operand[j1+local_id+t];
+                        uint64_t X = _operand[j1+local_id];
+                        uint64_t Y = _operand[j1+local_id+t];
 
-                    currX = X - (two_times_modulus & static_cast<uint64_t>(
-                                  -static_cast<int64_t>(X >= two_times_modulus)));
-                    multiply_uint64_hw64(Wprime, Y, &Q);
-                    Q = Y * W - Q * modulus;
-                    _operand[j1+local_id] = currX + Q;
-                    _operand[j1+local_id+t] = currX + (two_times_modulus - Q);
+                        currX = X - (two_times_modulus & static_cast<uint64_t>(
+                                      -static_cast<int64_t>(X >= two_times_modulus)));
+                        multiply_uint64_hw64(Wprime, Y, &Q);
+                        Q = Y * W - Q * modulus;
+                        _operand[j1+local_id] = currX + Q;
+                        _operand[j1+local_id+t] = currX + (two_times_modulus - Q);
 
-                    t >>= 1;
-                    it.barrier();
-                  }
+                        t >>= 1;
+                        it.barrier();
+                    }
+                    if (!lazy){
+                      if (_operand[tid] >= two_times_modulus) {
+                        _operand[tid] -= two_times_modulus;
+                      } else if (_operand[tid] >= modulus) {
+                        _operand[tid] -= modulus;
+                      }
+                    }
               });
           });
       }
@@ -371,6 +379,7 @@ namespace seal
             }
         }
 
+        // Wrapper to original interface
         void inverse_ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
         {
             size_t n = size_t(1) << tables.coeff_count_power();
@@ -378,9 +387,71 @@ namespace seal
             const uint64_t *scaled_inv_root_powers_div_two = tables.get_scaled_inv_root_powers_div_two();
             uint64_t modulus = tables.modulus().value();
 
-            inverse_ntt_negacyclic_harvey_lazy__(operand, inv_root_powers_div_two,
-              scaled_inv_root_powers_div_two, modulus, n);
+            // sycl::buffer<uint64_t> buf_irp(inv_root_powers_div_two, n);
+            // sycl::buffer<uint64_t> buf_sirp(scaled_inv_root_powers_div_two, n);
+            // sycl::buffer<uint64_t> buf_operand(operand, n);
+            // sycl::queue q;
+
+            // inverse_ntt_negacyclic_harvey_(q, buf_operand, buf_irp, buf_sirp, modulus, n, true);
+            inverse_ntt_negacyclic_harvey_lazy__(operand, inv_root_powers_div_two, scaled_inv_root_powers_div_two, modulus, n);
         }
+
+        void inverse_ntt_negacyclic_harvey_(
+            sycl::queue& q,
+            sycl::buffer<uint64_t> buf_operand,
+            sycl::buffer<uint64_t>& buf_irp,
+            sycl::buffer<uint64_t>& buf_sirp,
+            uint64_t modulus, size_t n, bool lazy
+        ){
+          sycl::nd_range<1> work_items{sycl::range<1>
+            (1024*((n/2+1023)/1024)), sycl::range<1>(1024)};
+
+          q.submit([&](sycl::handler& cgh){
+          auto _irp = buf_irp.get_access<sycl::access::mode::read>(cgh);
+          auto _sirp = buf_sirp.get_access<sycl::access::mode::read>(cgh);
+          auto _operand = buf_operand.get_access<sycl::access::mode::read_write>(cgh);
+
+          cgh.parallel_for<class _inverse_ntt_negacyclic_harvey>
+          (work_items, [=](sycl::nd_item<1> it){
+              int tid = it.get_group(0) * work_items.get_local_range().get(0) + it.get_local_id(0);
+
+              uint64_t two_times_modulus = modulus * 2;
+              size_t t = 1;
+
+              for (size_t m = n; m > 1; m >>= 1)
+              {
+                  size_t h = m >> 1;
+
+                  size_t i = tid / t; // partition number
+                  size_t local_id = tid % t;
+                  // Need the powers of phi^{-1} in bit-reversed order
+                  size_t j1 = i * 2 * t; // offset
+                  const uint64_t W = _irp[h + i];
+                  const uint64_t Wprime = _sirp[h + i];
+
+                  uint64_t U = _operand[j1+local_id];
+                  uint64_t V = _operand[j1+local_id+t];
+                  uint64_t currU;
+                  uint64_t T;
+                  unsigned long long H;
+
+                  T = two_times_modulus - V + U;
+                  currU = U + V - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>((U << 1) >= T)));
+                  U = (currU + (modulus & static_cast<uint64_t>(-static_cast<int64_t>(T & 1)))) >> 1;
+                  multiply_uint64_hw64(Wprime, T, &H);
+                  V = T * W - H * modulus;
+                  _operand[j1+local_id] = U;
+                  _operand[j1+local_id+t] = V;
+
+                  t <<= 1;
+                  it.barrier();
+              }
+              if (!lazy){
+                if (_operand[tid] >= modulus) _operand[tid] -= modulus;
+              }
+          });
+        });
+      }
 
         // Inverse negacyclic NTT using Harvey's butterfly. (See Patrick Longa and Michael Naehrig).
         void inverse_ntt_negacyclic_harvey_lazy__(uint64_t *operand,

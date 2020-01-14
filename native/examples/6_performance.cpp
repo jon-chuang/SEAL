@@ -649,9 +649,9 @@ void example_ckks_performance_default()
     // test, BFVDefault primes are good enough.
     EncryptionParameters parms(scheme_type::CKKS);
     size_t poly_modulus_degree = 4096;
-    // parms.set_poly_modulus_degree(poly_modulus_degree);
-    // parms.set_coeff_modulus(CoeffModulus::BFVDefault(poly_modulus_degree));
-    // ckks_performance_test(SEALContext::Create(parms));
+    parms.set_poly_modulus_degree(poly_modulus_degree);
+    parms.set_coeff_modulus(CoeffModulus::BFVDefault(poly_modulus_degree));
+    ckks_performance_test(SEALContext::Create(parms));
 
     cout << endl;
     poly_modulus_degree = 8192;

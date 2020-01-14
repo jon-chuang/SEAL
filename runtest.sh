@@ -1,4 +1,5 @@
-export CXX=/usr/lib/llvm-9/bin/clang++  #/usr/local/bin/syclcc-clang
+source ~/.bashrc
+export CXX=/usr/local/bin/syclcc-clang
 export SEAL_USE_CXX17=FALSE
 rm -r native/build
 mkdir native/build
