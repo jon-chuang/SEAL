@@ -167,19 +167,101 @@ namespace seal
         */
 
         // For testing purposes
-        void ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
+        // void ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
+        // {
+        //     size_t n = size_t(1) << tables.coeff_count_power();
+        //     const uint64_t *root_powers = tables.get_root_powers();
+        //     const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
+        //     uint64_t modulus = tables.modulus().value();
+        //     // sycl::queue q;
+        //     // sycl::buffer<uint64_t> buf_rp(root_powers, n);
+        //     // sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
+        //     // sycl::buffer<uint64_t> buf_operand(operand, n);
+        //     //
+        //     // ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
+        //
+        //     ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
+        // }
+
+        void ntt_negacyclic_harvey_lazy(uint64_t *operand,
+            const SmallNTTTables &tables)
         {
-            size_t n = size_t(1) << tables.coeff_count_power();
-            const uint64_t *root_powers = tables.get_root_powers();
-            const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
             uint64_t modulus = tables.modulus().value();
-            // sycl::queue q;
-            // sycl::buffer<uint64_t> buf_rp(root_powers, n);
-            // sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
-            // sycl::buffer<uint64_t> buf_operand(operand, n);
-            //
-            // ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
-            ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
+            uint64_t two_times_modulus = modulus * 2;
+
+            // Return the NTT in scrambled order
+            size_t n = size_t(1) << tables.coeff_count_power();
+            size_t t = n >> 1;
+            for (size_t m = 1; m < n; m <<= 1)
+            {
+                if (t >= 4)
+                {
+                    for (size_t i = 0; i < m; i++)
+                    {
+                        size_t j1 = 2 * i * t;
+                        size_t j2 = j1 + t;
+                        const uint64_t W = tables.get_from_root_powers(m + i);
+                        const uint64_t Wprime = tables.get_from_scaled_root_powers(m + i);
+
+                        uint64_t *X = operand + j1;
+                        uint64_t *Y = X + t;
+                        uint64_t currX;
+                        unsigned long long Q;
+                        for (size_t j = j1; j < j2; j += 4)
+                        {
+                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
+                            multiply_uint64_hw64(Wprime, *Y, &Q);
+                            Q = *Y * W - Q * modulus;
+                            *X++ = currX + Q;
+                            *Y++ = currX + (two_times_modulus - Q);
+
+                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
+                            multiply_uint64_hw64(Wprime, *Y, &Q);
+                            Q = *Y * W - Q * modulus;
+                            *X++ = currX + Q;
+                            *Y++ = currX + (two_times_modulus - Q);
+
+                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
+                            multiply_uint64_hw64(Wprime, *Y, &Q);
+                            Q = *Y * W - Q * modulus;
+                            *X++ = currX + Q;
+                            *Y++ = currX + (two_times_modulus - Q);
+
+                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
+                            multiply_uint64_hw64(Wprime, *Y, &Q);
+                            Q = *Y * W - Q * modulus;
+                            *X++ = currX + Q;
+                            *Y++ = currX + (two_times_modulus - Q);
+                        }
+                    }
+                }
+                else
+                {
+                    for (size_t i = 0; i < m; i++)
+                    {
+                        size_t j1 = 2 * i * t;
+                        size_t j2 = j1 + t;
+                        const uint64_t W = tables.get_from_root_powers(m + i);
+                        const uint64_t Wprime = tables.get_from_scaled_root_powers(m + i);
+
+                        uint64_t *X = operand + j1;
+                        uint64_t *Y = X + t;
+                        uint64_t currX;
+                        unsigned long long Q;
+                        for (size_t j = j1; j < j2; j++)
+                        {
+                            // The Harvey butterfly: assume X, Y in [0, 2p), and return X', Y' in [0, 4p).
+                            // X', Y' = X + WY, X - WY (mod p).
+                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
+                            multiply_uint64_hw64(Wprime, *Y, &Q);
+                            Q = W * *Y - Q * modulus;
+                            *X++ = currX + Q;
+                            *Y++ = currX + (two_times_modulus - Q);
+                        }
+                    }
+                }
+                t >>= 1;
+            }
         }
 
         void ntt_negacyclic_harvey_(
@@ -200,6 +282,7 @@ namespace seal
             cgh.parallel_for<class _ntt_negacyclic_harvey>
                 (work_items, [=](sycl::nd_item<1> it){
                     int tid = it.get_group(0) * work_items.get_local_range().get(0) + it.get_local_id(0);
+                    if (2*tid < n){
 
                     uint64_t two_times_modulus = modulus * 2;
                     size_t t = n >> 1;
@@ -229,14 +312,48 @@ namespace seal
                         it.barrier();
                     }
                     if (!lazy){
-                      if (_operand[tid] >= two_times_modulus) {
-                        _operand[tid] -= two_times_modulus;
-                      } else if (_operand[tid] >= modulus) {
-                        _operand[tid] -= modulus;
-                      }
+                      if (_operand[tid*2] >= two_times_modulus) _operand[tid*2] -= two_times_modulus;
+                      if (_operand[tid*2] >= modulus) _operand[tid*2] -= modulus;
+
+                      if (_operand[tid*2+1] >= two_times_modulus) _operand[tid*2+1] -= two_times_modulus;
+                      if (_operand[tid*2+1] >= modulus) _operand[tid*2+1] -= modulus;
                     }
+                  }
               });
           });
+      }
+
+      void ntt_negacyclic_harvey_lazy___(
+        uint64_t *operand,
+        const uint64_t *root_powers, const uint64_t *scaled_root_powers,
+        uint64_t modulus, size_t n
+      ){
+          uint64_t two_times_modulus = modulus * 2;
+
+          // Return the NTT in scrambled order
+          size_t t = n >> 1;
+          for (size_t m = 1; m < n; m <<= 1)
+          {
+              for (size_t tid = 0; 2*tid < n; tid++)
+              {
+                  size_t i = tid / t;
+                  size_t j1 = 2 * i * t;
+                  size_t j2 = j1 + t;
+                  const uint64_t W = root_powers[m + i];
+                  const uint64_t Wprime = scaled_root_powers[m + i];
+
+                  uint64_t currX;
+                  unsigned long long Q;
+                  currX = operand[j1] - (two_times_modulus & static_cast<uint64_t>
+                      (-static_cast<int64_t>(operand[j1] >= two_times_modulus)));
+                  multiply_uint64_hw64(Wprime, operand[j1+t], &Q);
+                  Q = operand[j1+t] * W - Q * modulus;
+                  operand[j1] = currX + Q;
+                  operand[j1] = currX + (two_times_modulus - Q);
+
+                  t >>= 1;
+              }
+          }
       }
 
 
@@ -391,8 +508,8 @@ namespace seal
             // sycl::buffer<uint64_t> buf_sirp(scaled_inv_root_powers_div_two, n);
             // sycl::buffer<uint64_t> buf_operand(operand, n);
             // sycl::queue q;
-
-            // inverse_ntt_negacyclic_harvey_(q, buf_operand, buf_irp, buf_sirp, modulus, n, true);
+            //
+            // inverse_ntt_negacyclic_harvey_(q, buf_operand, buf_irp, buf_sirp, modulus, n, false);
             inverse_ntt_negacyclic_harvey_lazy__(operand, inv_root_powers_div_two, scaled_inv_root_powers_div_two, modulus, n);
         }
 
@@ -447,7 +564,8 @@ namespace seal
                   it.barrier();
               }
               if (!lazy){
-                if (_operand[tid] >= modulus) _operand[tid] -= modulus;
+                if (_operand[tid*2] >= modulus) _operand[tid*2] -= modulus;
+                if (_operand[tid*2+1] >= modulus) _operand[tid*2+1] -= modulus;
               }
           });
         });
