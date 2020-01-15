@@ -167,102 +167,22 @@ namespace seal
         */
 
         // For testing purposes
-        // void ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
-        // {
-        //     size_t n = size_t(1) << tables.coeff_count_power();
-        //     const uint64_t *root_powers = tables.get_root_powers();
-        //     const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
-        //     uint64_t modulus = tables.modulus().value();
-        //     // sycl::queue q;
-        //     // sycl::buffer<uint64_t> buf_rp(root_powers, n);
-        //     // sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
-        //     // sycl::buffer<uint64_t> buf_operand(operand, n);
-        //     //
-        //     // ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
-        //
-        //     ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
-        // }
-
-        void ntt_negacyclic_harvey_lazy(uint64_t *operand,
-            const SmallNTTTables &tables)
+        void ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
         {
-            uint64_t modulus = tables.modulus().value();
-            uint64_t two_times_modulus = modulus * 2;
-
-            // Return the NTT in scrambled order
             size_t n = size_t(1) << tables.coeff_count_power();
-            size_t t = n >> 1;
-            for (size_t m = 1; m < n; m <<= 1)
-            {
-                if (t >= 4)
-                {
-                    for (size_t i = 0; i < m; i++)
-                    {
-                        size_t j1 = 2 * i * t;
-                        size_t j2 = j1 + t;
-                        const uint64_t W = tables.get_from_root_powers(m + i);
-                        const uint64_t Wprime = tables.get_from_scaled_root_powers(m + i);
+            const uint64_t *root_powers = tables.get_root_powers();
+            const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
+            uint64_t modulus = tables.modulus().value();
+            // sycl::queue q;
+            // sycl::buffer<uint64_t> buf_rp(root_powers, n);
+            // sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
+            // sycl::buffer<uint64_t> buf_operand(operand, n);
+            //
+            // ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
 
-                        uint64_t *X = operand + j1;
-                        uint64_t *Y = X + t;
-                        uint64_t currX;
-                        unsigned long long Q;
-                        for (size_t j = j1; j < j2; j += 4)
-                        {
-                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
-                            multiply_uint64_hw64(Wprime, *Y, &Q);
-                            Q = *Y * W - Q * modulus;
-                            *X++ = currX + Q;
-                            *Y++ = currX + (two_times_modulus - Q);
-
-                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
-                            multiply_uint64_hw64(Wprime, *Y, &Q);
-                            Q = *Y * W - Q * modulus;
-                            *X++ = currX + Q;
-                            *Y++ = currX + (two_times_modulus - Q);
-
-                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
-                            multiply_uint64_hw64(Wprime, *Y, &Q);
-                            Q = *Y * W - Q * modulus;
-                            *X++ = currX + Q;
-                            *Y++ = currX + (two_times_modulus - Q);
-
-                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
-                            multiply_uint64_hw64(Wprime, *Y, &Q);
-                            Q = *Y * W - Q * modulus;
-                            *X++ = currX + Q;
-                            *Y++ = currX + (two_times_modulus - Q);
-                        }
-                    }
-                }
-                else
-                {
-                    for (size_t i = 0; i < m; i++)
-                    {
-                        size_t j1 = 2 * i * t;
-                        size_t j2 = j1 + t;
-                        const uint64_t W = tables.get_from_root_powers(m + i);
-                        const uint64_t Wprime = tables.get_from_scaled_root_powers(m + i);
-
-                        uint64_t *X = operand + j1;
-                        uint64_t *Y = X + t;
-                        uint64_t currX;
-                        unsigned long long Q;
-                        for (size_t j = j1; j < j2; j++)
-                        {
-                            // The Harvey butterfly: assume X, Y in [0, 2p), and return X', Y' in [0, 4p).
-                            // X', Y' = X + WY, X - WY (mod p).
-                            currX = *X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(*X >= two_times_modulus)));
-                            multiply_uint64_hw64(Wprime, *Y, &Q);
-                            Q = W * *Y - Q * modulus;
-                            *X++ = currX + Q;
-                            *Y++ = currX + (two_times_modulus - Q);
-                        }
-                    }
-                }
-                t >>= 1;
-            }
+            ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
         }
+
 
         void ntt_negacyclic_harvey_(
           sycl::queue& q,
@@ -323,7 +243,7 @@ namespace seal
           });
       }
 
-      void ntt_negacyclic_harvey_lazy___(
+      void ntt_negacyclic_harvey_lazy__(
         uint64_t *operand,
         const uint64_t *root_powers, const uint64_t *scaled_root_powers,
         uint64_t modulus, size_t n
@@ -337,22 +257,32 @@ namespace seal
               for (size_t tid = 0; 2*tid < n; tid++)
               {
                   size_t i = tid / t;
+                  size_t local_id = tid % t;
                   size_t j1 = 2 * i * t;
-                  size_t j2 = j1 + t;
                   const uint64_t W = root_powers[m + i];
                   const uint64_t Wprime = scaled_root_powers[m + i];
 
                   uint64_t currX;
                   unsigned long long Q;
-                  currX = operand[j1] - (two_times_modulus & static_cast<uint64_t>
-                      (-static_cast<int64_t>(operand[j1] >= two_times_modulus)));
-                  multiply_uint64_hw64(Wprime, operand[j1+t], &Q);
-                  Q = operand[j1+t] * W - Q * modulus;
-                  operand[j1] = currX + Q;
-                  operand[j1] = currX + (two_times_modulus - Q);
 
-                  t >>= 1;
+                  uint64_t X = operand[j1+local_id];
+                  uint64_t Y = operand[j1+local_id+t];
+
+                  // currX = X - (two_times_modulus & static_cast<uint64_t>(
+                  //               -static_cast<int64_t>(X >= two_times_modulus)));
+                  // multiply_uint64_hw64(Wprime, Y, &Q);
+                  // Q = Y * W - Q * modulus;
+                  // operand[j1+local_id] = currX + Q;
+                  // operand[j1+local_id+t] = currX + (two_times_modulus - Q);
+
+                  currX = operand[j1+local_id] - (two_times_modulus & static_cast<uint64_t>
+                      (-static_cast<int64_t>(operand[j1+local_id] >= two_times_modulus)));
+                  multiply_uint64_hw64(Wprime, operand[j1+local_id+t], &Q);
+                  Q = operand[j1+local_id+t] * W - Q * modulus;
+                  operand[j1+local_id] = currX + Q;
+                  operand[j1+local_id+t] = currX + (two_times_modulus - Q);
               }
+              t >>= 1;
           }
       }
 
@@ -415,7 +345,7 @@ namespace seal
             //     operand[] = shared_operand[];
             // }
 
-        void ntt_negacyclic_harvey_lazy__(
+        void ntt_negacyclic_harvey_lazy___(
           uint64_t *operand,
           const uint64_t *root_powers, const uint64_t *scaled_root_powers,
           uint64_t modulus, size_t n
@@ -500,17 +430,30 @@ namespace seal
         void inverse_ntt_negacyclic_harvey_lazy(uint64_t *operand, const SmallNTTTables &tables)
         {
             size_t n = size_t(1) << tables.coeff_count_power();
+            const size_t n_ = (const size_t) n;
             const uint64_t *inv_root_powers_div_two = tables.get_inv_root_powers_div_two();
             const uint64_t *scaled_inv_root_powers_div_two = tables.get_scaled_inv_root_powers_div_two();
             uint64_t modulus = tables.modulus().value();
 
-            // sycl::buffer<uint64_t> buf_irp(inv_root_powers_div_two, n);
-            // sycl::buffer<uint64_t> buf_sirp(scaled_inv_root_powers_div_two, n);
-            // sycl::buffer<uint64_t> buf_operand(operand, n);
-            // sycl::queue q;
-            //
-            // inverse_ntt_negacyclic_harvey_(q, buf_operand, buf_irp, buf_sirp, modulus, n, false);
+            vector<uint64_t> operand_;
+            operand_.assign(operand, operand+n);
+
+            sycl::buffer<uint64_t> buf_irp(inv_root_powers_div_two, n);
+            sycl::buffer<uint64_t> buf_sirp(scaled_inv_root_powers_div_two, n);
+            sycl::buffer<uint64_t> buf_operand(operand_.data(), n);
+            sycl::queue q;
+
+            inverse_ntt_negacyclic_harvey_(q, buf_operand, buf_irp, buf_sirp, modulus, n, true);
+
             inverse_ntt_negacyclic_harvey_lazy__(operand, inv_root_powers_div_two, scaled_inv_root_powers_div_two, modulus, n);
+
+            buf_operand.get_access<sycl::access::mode::read_write>();
+            for (size_t i = 0; i < n; i++){
+                if (operand_[i] != operand[i]) {
+                  cout << operand_[i] << " " << operand[i] << endl;
+                  operand_[i] = operand[i];
+                }
+            }
         }
 
         void inverse_ntt_negacyclic_harvey_(
@@ -531,6 +474,7 @@ namespace seal
           cgh.parallel_for<class _inverse_ntt_negacyclic_harvey>
           (work_items, [=](sycl::nd_item<1> it){
               int tid = it.get_group(0) * work_items.get_local_range().get(0) + it.get_local_id(0);
+              if(2*tid < n){
 
               uint64_t two_times_modulus = modulus * 2;
               size_t t = 1;
@@ -538,11 +482,9 @@ namespace seal
               for (size_t m = n; m > 1; m >>= 1)
               {
                   size_t h = m >> 1;
-
-                  size_t i = tid / t; // partition number
+                  size_t i = tid / t;
                   size_t local_id = tid % t;
-                  // Need the powers of phi^{-1} in bit-reversed order
-                  size_t j1 = i * 2 * t; // offset
+                  size_t j1 = i * 2 * t;
                   const uint64_t W = _irp[h + i];
                   const uint64_t Wprime = _sirp[h + i];
 
@@ -567,12 +509,51 @@ namespace seal
                 if (_operand[tid*2] >= modulus) _operand[tid*2] -= modulus;
                 if (_operand[tid*2+1] >= modulus) _operand[tid*2+1] -= modulus;
               }
+            }
           });
         });
       }
 
-        // Inverse negacyclic NTT using Harvey's butterfly. (See Patrick Longa and Michael Naehrig).
         void inverse_ntt_negacyclic_harvey_lazy__(uint64_t *operand,
+            const uint64_t *inv_root_powers_div_two,
+            const uint64_t *scaled_inv_root_powers_div_two,
+            uint64_t modulus, size_t n)
+        {
+            uint64_t two_times_modulus = modulus * 2;
+            size_t t = 1;
+
+            for (size_t m = n; m > 1; m >>= 1)
+            {
+                size_t j1 = 0;
+                size_t h = m >> 1;
+                    for (size_t tid = 0; 2*tid < n; tid++)
+                    {
+                        size_t i = tid / t;
+                        size_t local_id = tid % t;
+                        size_t j1 = i * 2 * t;
+                        const uint64_t W = inv_root_powers_div_two[h + i];
+                        const uint64_t Wprime = scaled_inv_root_powers_div_two[h + i];
+
+                        uint64_t U = operand[j1+local_id];
+                        uint64_t V = operand[j1+local_id+t];
+                        uint64_t currU;
+                        uint64_t T;
+                        unsigned long long H;
+
+                        T = two_times_modulus - V + U;
+                        currU = U + V - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>((U << 1) >= T)));
+                        U = (currU + (modulus & static_cast<uint64_t>(-static_cast<int64_t>(T & 1)))) >> 1;
+                        multiply_uint64_hw64(Wprime, T, &H);
+                        V = T * W - H * modulus;
+                        operand[j1+local_id] = U;
+                        operand[j1+local_id+t] = V;
+                    }
+                t <<= 1;
+            }
+        }
+
+        // Inverse negacyclic NTT using Harvey's butterfly. (See Patrick Longa and Michael Naehrig).
+        void inverse_ntt_negacyclic_harvey_lazy___(uint64_t *operand,
             const uint64_t *inv_root_powers_div_two, const uint64_t *scaled_inv_root_powers_div_two,
             uint64_t modulus, size_t n)
         {

@@ -2699,18 +2699,18 @@ namespace seal
 
           if (scheme == scheme_type::CKKS)
           {
-              buf_lsp_0.get_access<sycl::access::mode::read_write>();
-              tables[i][0].get_access<sycl::access::mode::read>();
-              tables[i][1].get_access<sycl::access::mode::read>();
-              inverse_ntt_negacyclic_harvey(
-                  local_small_poly_0.get(),
-                  small_ntt_tables[i]);
+              // buf_lsp_0.get_access<sycl::access::mode::read_write>();
+              // tables[i][0].get_access<sycl::access::mode::read>();
+              // tables[i][1].get_access<sycl::access::mode::read>();
+              // inverse_ntt_negacyclic_harvey(
+              //     local_small_poly_0.get(),
+              //     small_ntt_tables[i]);
 
-              // nvtxNameOsThread(0,"InputVideo");
-              // nvtxRangePush("INTT");
-              // inverse_ntt_negacyclic_harvey_(q, buf_lsp_0,
-              //     tables[i][2], tables[i][3], key_modulus[i].value(), coeff_count);
-              // nvtxRangePop();
+              nvtxNameOsThread(0,"InputVideo");
+              nvtxRangePush("INTT");
+              inverse_ntt_negacyclic_harvey_(q, buf_lsp_0,
+                  tables[i][2], tables[i][3], key_modulus[i].value(), coeff_count);
+              nvtxRangePop();
           }
 
           // Key RNS representation
