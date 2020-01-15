@@ -274,8 +274,11 @@ namespace seal
             sycl::buffer<uint64_t> buf_operand,
             sycl::buffer<uint64_t>& buf_irp,
             sycl::buffer<uint64_t>& buf_sirp,
-            uint64_t modulus, size_t n, bool lazy = false
+            uint64_t modulus, size_t n, bool lazy = false,
+            size_t num_threads = 1024
         );
+
+        __host__ __device__ void sync();
 
         void inverse_ntt_negacyclic_harvey_lazy__(uint64_t *operand,
             const uint64_t *inv_root_powers_div_two,
