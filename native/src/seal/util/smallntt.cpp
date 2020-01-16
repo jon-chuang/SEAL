@@ -173,14 +173,14 @@ namespace seal
             const uint64_t *root_powers = tables.get_root_powers();
             const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
             uint64_t modulus = tables.modulus().value();
-            sycl::queue q;
-            sycl::buffer<uint64_t> buf_rp(root_powers, n);
-            sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
-            sycl::buffer<uint64_t> buf_operand(operand, n);
+            // sycl::queue q;
+            // sycl::buffer<uint64_t> buf_rp(root_powers, n);
+            // sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
+            // sycl::buffer<uint64_t> buf_operand(operand, n);
+            //
+            // ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
 
-            ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
-
-        //     ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
+            ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
         }
 
 
@@ -193,7 +193,6 @@ namespace seal
       ){
             size_t num_blocks = ((n/2+num_threads-1)/num_threads);
             size_t block = min(n/2, size_t(num_threads));
-            const size_t n_queues = min(num_blocks, size_t(8));
             sycl::range<1>block_size(block);
             sycl::nd_range<1> work_groups{sycl::range<1>(n/2), block_size};
 
