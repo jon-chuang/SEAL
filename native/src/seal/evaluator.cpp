@@ -2675,27 +2675,26 @@ namespace seal
           sycl::buffer<uint64_t> buf_key_0(key_vector[i].data().data(0), key_mod_count*coeff_count);
           sycl::buffer<uint64_t> buf_key_1(key_vector[i].data().data(1), key_mod_count*coeff_count);
 
-          buf_lsp_0.get_access<sycl::access::mode::write>();
-          buf_target.get_access<sycl::access::mode::read>();
-            set_uint_uint(
-                target + i * coeff_count,
-                coeff_count,
-                local_small_poly_0.get());
+          // buf_lsp_0.get_access<sycl::access::mode::write>();
+          // buf_target.get_access<sycl::access::mode::read>();
+          //   set_uint_uint(
+          //       target + i * coeff_count,
+          //       coeff_count,
+          //       local_small_poly_0.get());
 
           // Initialisation
-          // q.submit([&](sycl::handler& cgh){
-          //     auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::write>(cgh);
-          //     auto _target = buf_target.get_access<sycl::access::mode::read>(cgh);
-          //
-          //     cgh.parallel_for<class _set_uint_uint_1>
-          //       (two_work_items, [=](sycl::nd_item<1> it){
-          //           int tid = it.get_group(0)*two_work_items.get_local_range().get(0)+it.get_local_id(0);
-          //           if (tid < coeff_count*2){
-          //               _lsp_0[tid*2] = _target[i*coeff_count+tid*2];
-          //               _lsp_0[tid*2+1] = _target[i*coeff_count+tid*2+1];
-          //             }
-          //       });
-          // });
+          q.submit([&](sycl::handler& cgh){
+              auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::write>(cgh);
+              auto _target = buf_target.get_access<sycl::access::mode::read>(cgh);
+
+              cgh.parallel_for<class _set_uint_uint_1>
+                (sycl::range<1>(coeff_count/2), [=](sycl::id<1> tid){
+                    if (2*tid.get(0) < coeff_count){
+                        _lsp_0[tid*2] = _target[i*coeff_count+tid.get(0)*2];
+                        _lsp_0[tid*2+1] = _target[i*coeff_count+tid.get(0)*2+1];
+                      }
+                });
+          });
 
           if (scheme == scheme_type::CKKS)
           {
@@ -2719,95 +2718,91 @@ namespace seal
               size_t index = (j == decomp_mod_count ? key_mod_count - 1 : j);
               if (scheme == scheme_type::CKKS && i == j)
               {
-                  // q.submit([&](sycl::handler& cgh){
-                  //     auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
-                  //     auto _target = buf_target.get_access<sycl::access::mode::read>(cgh);
-                  //
-                  //     cgh.parallel_for<class _set_uint_uint_2>
-                  //       (two_work_items, [=](sycl::nd_item<1> it){
-                  //           int tid = it.get_group(0)*two_work_items.get_local_range().get(0)+it.get_local_id(0);
-                  //           if (2*tid < coeff_count){
-                  //               _lsp_1[tid*2] = _target[j*coeff_count+tid*2];
-                  //               _lsp_1[tid*2+1] = _target[j*coeff_count+tid*2+1];
-                  //             }
-                  //       });
-                  // });
+                  q.submit([&](sycl::handler& cgh){
+                      auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
+                      auto _target = buf_target.get_access<sycl::access::mode::read>(cgh);
 
-                  buf_lsp_1.get_access<sycl::access::mode::write>();
-                  buf_target.get_access<sycl::access::mode::read>();
-                    set_uint_uint(
-                        target + j * coeff_count,
-                        coeff_count,
-                        local_small_poly_1.get());
-                  for (size_t l = 0; l < coeff_count; l++){
-                      if (local_small_poly_1.get()[l] != *(target+j*coeff_count+l)) cout << local_small_poly_1.get()[l] << " " << *(target+j*coeff_count+l) << endl;
-                      local_small_poly_1.get()[l] = *(target+j*coeff_count+l);
-                  }
+                      cgh.parallel_for<class _set_uint_uint_2>
+                        (sycl::range<1>(coeff_count/2), [=](sycl::id<1> tid){
+                            if (2*tid.get(0) < coeff_count){
+                                _lsp_1[tid*2] = _target[i*coeff_count+tid.get(0)*2];
+                                _lsp_1[tid*2+1] = _target[i*coeff_count+tid.get(0)*2+1];
+                              }
+                        });
+                  });
+
+                  // buf_lsp_1.get_access<sycl::access::mode::write>();
+                  // buf_target.get_access<sycl::access::mode::read>();
+                  //   set_uint_uint(
+                  //       target + j * coeff_count,
+                  //       coeff_count,
+                  //       local_small_poly_1.get());
+                  // for (size_t l = 0; l < coeff_count; l++){
+                  //     if (local_small_poly_1.get()[l] != *(target+j*coeff_count+l)) cout << local_small_poly_1.get()[l] << " " << *(target+j*coeff_count+l) << endl;
+                  //     local_small_poly_1.get()[l] = *(target+j*coeff_count+l);
+                  // }
 
               } else {
                   // Reduce modulus only if needed
                   if (key_modulus[i].value() <= key_modulus[index].value())
                   {
-                    buf_lsp_1.get_access<sycl::access::mode::write>();
-                    buf_lsp_0.get_access<sycl::access::mode::read>();
-                    set_uint_uint(
-                        local_small_poly_0.get(),
-                        coeff_count,
-                        local_small_poly_1.get());
+                    // buf_lsp_1.get_access<sycl::access::mode::write>();
+                    // buf_lsp_0.get_access<sycl::access::mode::read>();
+                    // set_uint_uint(
+                    //     local_small_poly_0.get(),
+                    //     coeff_count,
+                    //     local_small_poly_1.get());
                     // lsp_1  <- lsp_0
-                    // q.submit([&](sycl::handler& cgh){
-                    //     auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
-                    //     auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::read>(cgh);
-                    //     cgh.parallel_for<class _set_uint_uint_3>
-                    //       (two_work_items, [=](sycl::nd_item<1> it){
-                    //           int tid = it.get_group(0)*two_work_items.get_local_range().get(0)+it.get_local_id(0);
-                    //           if (2*tid < coeff_count){
-                    //               _lsp_1[tid*2] = _lsp_0[tid*2];
-                    //               _lsp_1[tid*2+1] = _lsp_0[tid*2+1];
-                    //             }
-                    //       });
-                    // });
+                    q.submit([&](sycl::handler& cgh){
+                        auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
+                        auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::read>(cgh);
+                        cgh.parallel_for<class _set_uint_uint_3>
+                          (sycl::range<1>(coeff_count/2), [=](sycl::id<1> tid){
+                              if (2*tid.get(0) < coeff_count){
+                                  _lsp_1[tid*2] = _lsp_0[tid*2];
+                                  _lsp_1[tid*2+1] = _lsp_0[tid*2+1];
+                                }
+                          });
+                    });
                   } else {
 
-                    buf_lsp_1.get_access<sycl::access::mode::write>();
-                    buf_lsp_0.get_access<sycl::access::mode::read>();
-                      modulo_poly_coeffs_63(
-                          local_small_poly_0.get(),
-                          coeff_count,
-                          key_modulus[index],
-                          local_small_poly_1.get());
+                    // buf_lsp_1.get_access<sycl::access::mode::write>();
+                    // buf_lsp_0.get_access<sycl::access::mode::read>();
+                    //   modulo_poly_coeffs_63(
+                    //       local_small_poly_0.get(),
+                    //       coeff_count,
+                    //       key_modulus[index],
+                    //       local_small_poly_1.get());
                     //
-                    // const uint64_t mod = key_modulus[index].value();
-                    // const uint64_t const_ratio = key_modulus[index].const_ratio()[1];
-                    //
-                    // cout << "Barrett Reduce" << endl;
-                    // q.submit([&](sycl::handler& cgh){
-                    //     auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
-                    //     auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::read>(cgh);
-                    //
-                    //     cgh.parallel_for<class _barrett_reduce>
-                    //       (two_work_items, [=](sycl::nd_item<1> it){
-                    //           int tid = it.get_group(0)*two_work_items.get_local_range().get(0)+ it.get_local_id(0);
-                    //           if (2*tid < coeff_count){
-                    //               _lsp_1[tid*2] = barrett_reduce_63_(_lsp_0[tid*2], mod, const_ratio);
-                    //               _lsp_1[tid*2+1] = barrett_reduce_63_(_lsp_0[tid*2+1], mod, const_ratio);
-                    //       }
-                    //   });
-                    // });
+                    const uint64_t mod = key_modulus[index].value();
+                    const uint64_t const_ratio = key_modulus[index].const_ratio()[1];
+
+                    q.submit([&](sycl::handler& cgh){
+                        auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
+                        auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::read>(cgh);
+
+                        cgh.parallel_for<class _barrett_reduce>
+                        (sycl::range<1>(coeff_count/2), [=](sycl::id<1> tid){
+                            if (2*tid.get(0) < coeff_count){
+                                  _lsp_1[tid*2] = barrett_reduce_63_(_lsp_0[tid*2], mod, const_ratio);
+                                  _lsp_1[tid*2+1] = barrett_reduce_63_(_lsp_0[tid*2+1], mod, const_ratio);
+                          }
+                      });
+                    });
 
                   }
                   nvtxNameOsThread(0,"InputVideo");
                   nvtxRangePush("Negacyclic Harvey" );
                   // Lazy reduction, output in [0, 4q).
-                  buf_lsp_1.get_access<sycl::access::mode::read_write>();
-                  tables[index][0].get_access<sycl::access::mode::read>();
-                  tables[index][1].get_access<sycl::access::mode::read>();
-                  ntt_negacyclic_harvey_lazy(
-                      local_small_poly_1.get(),
-                      small_ntt_tables[index]);
+                  // buf_lsp_1.get_access<sycl::access::mode::read_write>();
+                  // tables[index][0].get_access<sycl::access::mode::read>();
+                  // tables[index][1].get_access<sycl::access::mode::read>();
+                  // ntt_negacyclic_harvey_lazy(
+                  //     local_small_poly_1.get(),
+                  //     small_ntt_tables[index]);
 
-                  // ntt_negacyclic_harvey_(q, buf_lsp_1,
-                  //     tables[index][0], tables[index][1], key_modulus[index].value(), coeff_count, true);
+                  ntt_negacyclic_harvey_(q, buf_lsp_1,
+                      tables[index][0], tables[index][1], key_modulus[index].value(), coeff_count, true);
                   nvtxRangePop();
               }
               // Hadamard Product
@@ -2817,68 +2812,69 @@ namespace seal
                   nvtxNameOsThread(0,"InputVideo");
                   nvtxRangePush("Hadamard");
 
-                  auto _key = buf_key[k].get_access<sycl::access::mode::read>();
-                  auto _enc = buf_lsp_1.get_access<sycl::access::mode::read>();
-                  auto _tp = buf_temp_poly[k].get_access<sycl::access::mode::read_write>();
+                  // auto _key = buf_key[k].get_access<sycl::access::mode::read>();
+                  // auto _enc = buf_lsp_1.get_access<sycl::access::mode::read>();
+                  // auto _tp = buf_temp_poly[k].get_access<sycl::access::mode::read_write>();
+                  //
+                  // const uint64_t *key_ptr = key_vector[i].data().data(k);
+                  // for (size_t l = 0; l < coeff_count; l++)
+                  // {
+                  //     unsigned long long local_wide_product[2];
+                  //     unsigned long long local_low_word;
+                  //     unsigned char local_carry;
+                  //
+                  //     multiply_uint64(
+                  //         local_small_poly_1.get()[l],
+                  //         key_ptr[(index * coeff_count) + l],
+                  //         local_wide_product);
+                  //     local_carry = add_uint64(
+                  //         temp_poly[k].get()[(j * coeff_count + l) * 2],
+                  //         local_wide_product[0],
+                  //         &local_low_word);
+                  //     temp_poly[k].get()[(j * coeff_count + l) * 2] =
+                  //         local_low_word;
+                  //     temp_poly[k].get()[(j * coeff_count + l) * 2 + 1] +=
+                  //         local_wide_product[1] + local_carry;
+                  // }
 
-                  const uint64_t *key_ptr = key_vector[i].data().data(k);
-                  for (size_t l = 0; l < coeff_count; l++)
-                  {
-                      unsigned long long local_wide_product[2];
-                      unsigned long long local_low_word;
-                      unsigned char local_carry;
+                  q.submit([&](sycl::handler& cgh){
+                  auto _key = buf_key[k].get_access<sycl::access::mode::read>(cgh);
+                  auto _enc = buf_lsp_1.get_access<sycl::access::mode::read>(cgh);
+                  auto _tp = buf_temp_poly[k].get_access<sycl::access::mode::read_write>(cgh);
 
-                      multiply_uint64(
-                          local_small_poly_1.get()[l],
-                          key_ptr[(index * coeff_count) + l],
-                          local_wide_product);
-                      local_carry = add_uint64(
-                          temp_poly[k].get()[(j * coeff_count + l) * 2],
-                          local_wide_product[0],
-                          &local_low_word);
-                      temp_poly[k].get()[(j * coeff_count + l) * 2] =
-                          local_low_word;
-                      temp_poly[k].get()[(j * coeff_count + l) * 2 + 1] +=
-                          local_wide_product[1] + local_carry;
-                  }
+                  cgh.parallel_for<class _hadamard>
+                  (sycl::range<1>(coeff_count), [=](sycl::id<1> tid){
+                      if (tid.get(0) < coeff_count){
+                        unsigned long long local_wide_product[2];
+                        unsigned long long local_low_word;
+                        unsigned char local_carry;
 
-                 //  q.submit([&](sycl::handler& cgh){
-                 //  auto _key = buf_key[k].get_access<sycl::access::mode::read>(cgh);
-                 //  auto _enc = buf_lsp_1.get_access<sycl::access::mode::read>(cgh);
-                 //  auto _tp = buf_temp_poly[k].get_access<sycl::access::mode::read_write>(cgh);
-                 //
-                 //  cgh.parallel_for<class _hadamard>
-                 //    (one_work_items, [=](sycl::nd_item<1> it){
-                 //        int tid = it.get_group(0)*one_work_items.get_local_range().get(0)+it.get_local_id(0);
-                 //        unsigned long long local_wide_product[2];
-                 //        unsigned long long local_low_word;
-                 //        unsigned char local_carry;
-                 //
-                 //        multiply_uint64(
-                 //            _enc[tid],
-                 //            _key[(index * coeff_count) + tid],
-                 //            local_wide_product);
-                 //        local_carry = add_uint64(
-                 //            _tp[(j * coeff_count + tid) * 2],
-                 //            local_wide_product[0],
-                 //            &local_low_word);
-                 //        _tp[(j * coeff_count + tid) * 2] =
-                 //            local_low_word;
-                 //        _tp[(j * coeff_count + tid) * 2 + 1] +=
-                 //            local_wide_product[1] + local_carry;
-                 //    });
-                 // });
+                        multiply_uint64(
+                            _enc[tid],
+                            _key[(index * coeff_count) + tid.get(0)],
+                            local_wide_product);
+                        local_carry = add_uint64(
+                            _tp[(j * coeff_count + tid.get(0)) * 2],
+                            local_wide_product[0],
+                            &local_low_word);
+                        _tp[(j * coeff_count + tid.get(0)) * 2] =
+                            local_low_word;
+                        _tp[(j * coeff_count + tid.get(0)) * 2 + 1] +=
+                            local_wide_product[1] + local_carry;
+                      }
+                    });
+                 });
                }  nvtxRangePop();
             }
         }
 
         q.wait();
 
-      // Temporary results
-        Pointer<uint64_t> temp_poly_[2] {
-            allocate_zero_poly(2 * coeff_count, rns_mod_count, pool),
-            allocate_zero_poly(2 * coeff_count, rns_mod_count, pool)
-        };
+      // // Temporary results
+      Pointer<uint64_t> temp_poly_[2] {
+          allocate_zero_poly(2 * coeff_count, rns_mod_count, pool),
+          allocate_zero_poly(2 * coeff_count, rns_mod_count, pool)
+      };
 
       // RNS decomposition index = key index
       for (size_t i = 0; i < decomp_mod_count; i++)
@@ -2888,11 +2884,11 @@ namespace seal
           auto local_small_poly_1(allocate_uint(coeff_count, pool));
           auto local_small_poly_2(allocate_uint(coeff_count, pool));
 
+          const uint64_t *local_encrypted_ptr = nullptr;
           set_uint_uint(
               target + i * coeff_count,
               coeff_count,
               local_small_poly_0.get());
-
           if (scheme == scheme_type::CKKS)
           {
               inverse_ntt_negacyclic_harvey(
@@ -2905,10 +2901,7 @@ namespace seal
               size_t index = (j == decomp_mod_count ? key_mod_count - 1 : j);
               if (scheme == scheme_type::CKKS && i == j)
               {
-                  set_uint_uint(
-                      target + j * coeff_count,
-                      coeff_count,
-                      local_small_poly_1.get());
+                  local_encrypted_ptr = target + j * coeff_count;
               }
               else
               {
@@ -2933,6 +2926,7 @@ namespace seal
                   ntt_negacyclic_harvey_lazy(
                       local_small_poly_1.get(),
                       small_ntt_tables[index]);
+                  local_encrypted_ptr = local_small_poly_1.get();
               }
               // Two components in key
               for (size_t k = 0; k < 2; k++)
@@ -2957,7 +2951,7 @@ namespace seal
                       unsigned char local_carry;
 
                       multiply_uint64(
-                          local_small_poly_1.get()[l],
+                          local_encrypted_ptr[l],
                           key_ptr[(index * coeff_count) + l],
                           local_wide_product);
                       local_carry = add_uint64(
@@ -2975,23 +2969,23 @@ namespace seal
 
       buf_target.get_access<sycl::access::mode::read_write>();
 
-      // cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
-      // for (size_t k = 0; k < 2; k++)
-      // {
-      //     buf_temp_poly[k].get_access<sycl::access::mode::read>();
-      //
-      //     for (size_t l = 0; l < coeff_count; l+=100)
-      //     {
-      //         if (temp_poly_[k].get()[l] != temp_poly[k].get()[l]) {
-      //           cout << l << ": MISMATCH!" << " SYCL " << temp_poly[k].get()[l] << " C++ " << temp_poly_[k].get()[l] << endl;
-      //         }
-      //         // else {
-      //         //   cout << l << ": MATCH " << temp_poly[k].get()[l] << endl;
-      //         // }
-      //     }
-      //     cout << "CORRECTNESS!\n\n";
-      // }
-      // cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+      cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+      for (size_t k = 0; k < 2; k++)
+      {
+          buf_temp_poly[k].get_access<sycl::access::mode::read>();
+
+          for (size_t l = 0; l < coeff_count; l+=100)
+          {
+              if (temp_poly_[k].get()[l] != temp_poly[k].get()[l]) {
+                cout << l << ": MISMATCH!" << " SYCL " << temp_poly[k].get()[l] << " C++ " << temp_poly_[k].get()[l] << endl;
+              }
+              // else {
+              //   cout << l << ": MATCH " << temp_poly[k].get()[l] << endl;
+              // }
+          }
+          cout << "CORRECTNESS!\n\n";
+      }
+      cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 
       // Results are now stored in temp_poly[k]
       // Modulus switching should be performed

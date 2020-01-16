@@ -237,7 +237,8 @@ namespace seal
           sycl::buffer<uint64_t> buf_operand,
           sycl::buffer<uint64_t>& buf_irp,
           sycl::buffer<uint64_t>& buf_sirp,
-          uint64_t modulus, size_t n, bool lazy = false
+          uint64_t modulus, size_t n, bool lazy = false,
+          size_t num_threads = 1024
         );
 
         void ntt_negacyclic_harvey_lazy__(

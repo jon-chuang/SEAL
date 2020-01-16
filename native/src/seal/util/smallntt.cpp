@@ -189,59 +189,106 @@ namespace seal
           sycl::buffer<uint64_t> buf_operand,
           sycl::buffer<uint64_t>& buf_rp,
           sycl::buffer<uint64_t>& buf_srp,
-          uint64_t modulus, size_t n, bool lazy
-        ){
-            sycl::nd_range<1> work_items{sycl::range<1>
-                (1024*((n/2+1023)/(1024))), sycl::range<1>(1024)};
+          uint64_t modulus, size_t n, bool lazy, size_t num_threads
+      ){
+            size_t num_blocks = ((n/2+num_threads-1)/num_threads);
+            size_t block = min(n/2, size_t(num_threads));
+            const size_t n_queues = min(num_blocks, size_t(8));
+            sycl::range<1>block_size(block);
+            sycl::nd_range<1> work_groups{sycl::range<1>(n/2), block_size};
 
-            q.submit([&](sycl::handler& cgh){
-            auto _rp = buf_rp.get_access<sycl::access::mode::read>(cgh);
-            auto _srp = buf_srp.get_access<sycl::access::mode::read>(cgh);
-            auto _operand = buf_operand.get_access<sycl::access::mode::read_write>(cgh);
+            uint64_t two_times_modulus = modulus * 2;
 
-            cgh.parallel_for<class _ntt_negacyclic_harvey>
-                (work_items, [=](sycl::nd_item<1> it){
-                    int tid = it.get_global_id(0);
-                    if (2*tid < n){
+            if (num_blocks > 1){
+                size_t t = n >> 1;
+                for (size_t m = 1; m < n; m <<= 1)
+                {
+                  q.submit([&](sycl::handler& cgh){
+                  auto _rp = buf_rp.get_access<sycl::access::mode::read>(cgh);
+                  auto _srp = buf_srp.get_access<sycl::access::mode::read>(cgh);
+                  auto _operand = buf_operand.get_access<sycl::access::mode::read_write>(cgh);
 
-                    uint64_t two_times_modulus = modulus * 2;
-                    size_t t = n >> 1;
+                  cgh.parallel_for<class _ntt_negacyclic_harvey_global>
+                  (work_groups, [=](sycl::nd_item<1> it){
+                      int tid = it.get_global_id(0);
+                      if (2*tid < n)
+                      {
+                          size_t i = tid / t; // partition number
+                          size_t local_id = tid % t;
+                          size_t j1 = i * 2 * t; // offset
+                          const uint64_t W = _rp[m + i];
+                          const uint64_t Wprime = _srp[m + i];
 
-                    for (size_t m = 1; m < n; m <<= 1)
-                    {
-                        size_t i = tid / t; // partition number
-                        size_t local_id = tid % t;
-                        size_t j1 = i * 2 * t; // offset
-                        const uint64_t W = _rp[m + i];
-                        const uint64_t Wprime = _srp[m + i];
+                          uint64_t currX;
+                          unsigned long long Q;
 
-                        uint64_t currX;
-                        unsigned long long Q;
+                          uint64_t X = _operand[j1+local_id];
+                          uint64_t Y = _operand[j1+local_id+t];
 
-                        uint64_t X = _operand[j1+local_id];
-                        uint64_t Y = _operand[j1+local_id+t];
+                          currX = X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(X >= two_times_modulus)));
+                          multiply_uint64_hw64(Wprime, Y, &Q);
+                          Q = Y * W - Q * modulus;
+                          _operand[j1+local_id] = currX + Q;
+                          _operand[j1+local_id+t] = currX + (two_times_modulus - Q);
 
-                        currX = X - (two_times_modulus & static_cast<uint64_t>(
-                                      -static_cast<int64_t>(X >= two_times_modulus)));
-                        multiply_uint64_hw64(Wprime, Y, &Q);
-                        Q = Y * W - Q * modulus;
-                        _operand[j1+local_id] = currX + Q;
-                        _operand[j1+local_id+t] = currX + (two_times_modulus - Q);
-
-                        t >>= 1;
-                        it.barrier();
-                    }
-                    if (!lazy){
-                      if (_operand[tid*2] >= two_times_modulus) _operand[tid*2] -= two_times_modulus;
-                      if (_operand[tid*2] >= modulus) _operand[tid*2] -= modulus;
-
-                      if (_operand[tid*2+1] >= two_times_modulus) _operand[tid*2+1] -= two_times_modulus;
-                      if (_operand[tid*2+1] >= modulus) _operand[tid*2+1] -= modulus;
-                    }
-                  }
+                      }
+                  });
               });
-          });
-      }
+              q.wait();
+              t >>= 1;
+            }
+          }
+
+            // q.submit([&](sycl::handler& cgh){
+            // auto _rp = buf_rp.get_access<sycl::access::mode::read>(cgh);
+            // auto _srp = buf_srp.get_access<sycl::access::mode::read>(cgh);
+            // auto _operand = buf_operand.get_access<sycl::access::mode::read_write>(cgh);
+            //
+            // cgh.parallel_for<class _ntt_negacyclic_harvey_local>
+            //     (work_groups, [=](sycl::nd_item<1> it){
+            //         int tid = it.get_global_id(0);
+            //         if (2*tid < n)
+            //         {
+            //             size_t t = block;
+            //             for (size_t m = n/t; m < n; m <<= 1)
+            //             {
+            //                 size_t i = tid / t;
+            //                 size_t local_id = tid % t;
+            //                 size_t j1 = i * 2 * t;
+            //                 const uint64_t W = _rp[m + i];
+            //                 const uint64_t Wprime = _srp[m + i];
+            //
+            //                 uint64_t currX;
+            //                 unsigned long long Q;
+            //
+            //                 uint64_t X = _operand[j1+local_id];
+            //                 uint64_t Y = _operand[j1+local_id+t];
+            //
+            //                 currX = X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(X >= two_times_modulus)));
+            //                 multiply_uint64_hw64(Wprime, Y, &Q);
+            //                 Q = Y * W - Q * modulus;
+            //                 _operand[j1+local_id] = currX + Q;
+            //                 _operand[j1+local_id+t] = currX + (two_times_modulus - Q);
+            //
+            //                 t >>= 1;
+            //                 it.barrier();
+            //             }
+            //             if (!lazy){
+            //               if (_operand[tid*2] >= two_times_modulus)
+            //               {
+            //                   _operand[tid*2] -= two_times_modulus;
+            //                   if (_operand[tid*2] >= modulus) _operand[tid*2] -= modulus;
+            //               }
+            //               if (_operand[tid*2+1] >= two_times_modulus)
+            //               {
+            //                   _operand[tid*2+1] -= two_times_modulus;
+            //                   if (_operand[tid*2+1] >= modulus) _operand[tid*2+1] -= modulus;
+            //               }
+            //             }
+            //           }
+            //     });
+            // });
+        }
 
       void ntt_negacyclic_harvey_lazy__(
         uint64_t *operand,
@@ -440,14 +487,14 @@ namespace seal
             vector<uint64_t> operand_;
             operand_.assign(operand, operand+n);
 
-            sycl::buffer<uint64_t> buf_irp(inv_root_powers_div_two, n);
-            sycl::buffer<uint64_t> buf_sirp(scaled_inv_root_powers_div_two, n);
-            sycl::buffer<uint64_t> buf_operand(operand, n);
-            sycl::queue q;
+            // sycl::buffer<uint64_t> buf_irp(inv_root_powers_div_two, n);
+            // sycl::buffer<uint64_t> buf_sirp(scaled_inv_root_powers_div_two, n);
+            // sycl::buffer<uint64_t> buf_operand(operand, n);
+            // sycl::queue q;
 
-            inverse_ntt_negacyclic_harvey_(q, buf_operand, buf_irp, buf_sirp, modulus, n, true);
+            // inverse_ntt_negacyclic_harvey_(q, buf_operand, buf_irp, buf_sirp, modulus, n, true);
             //
-            // inverse_ntt_negacyclic_harvey_lazy__(operand_.data(), inv_root_powers_div_two, scaled_inv_root_powers_div_two, modulus, n);
+            inverse_ntt_negacyclic_harvey_lazy__(operand_.data(), inv_root_powers_div_two, scaled_inv_root_powers_div_two, modulus, n);
         }
 
         void inverse_ntt_negacyclic_harvey_(
@@ -464,9 +511,9 @@ namespace seal
           const size_t n_queues = min(num_blocks, size_t(8));
           sycl::range<1>block_size(block);
           sycl::nd_range<1> two_work_items{sycl::range<1>(block_size), block_size};
-          sycl::nd_range<1> work_groups{sycl::range<1>(block*num_blocks), block_size};
+          sycl::nd_range<1> work_groups{sycl::range<1>(n/2), block_size};
 
-          cout << "info: block size " << block << " num blocks " << num_blocks << " n queues " << n_queues << endl;
+          // cout << "info: block size " << block << " num blocks " << num_blocks << " n queues " << n_queues << endl;
           uint64_t two_times_modulus = modulus * 2;
 
           q.submit([&](sycl::handler& cgh){
@@ -516,95 +563,53 @@ namespace seal
           // cout << "first kernel complete\n";
           // communication of range >= 2*block
           if (num_blocks > 1)
-          {
-              vector<sycl::buffer<uint64_t>> buffers;
-              vector<sycl::queue> queues;
-              for (size_t k=0; k<n_queues; k++){
-                  queues.push_back(sycl::queue());
-              }
-              // Memory copy
-              for (size_t k = 0; k < 2*num_blocks; k++)
+          {  // cout << "loaded vectors\n";
+              size_t t = block << 1;
+              for (size_t m = num_blocks; m > 1; m >>= 1)
               {
-                  sycl::buffer<uint64_t> buf(num_threads);
-                  size_t offset = k*num_threads;
-                  queues[k % n_queues].submit([&](sycl::handler& cgh){
-                      auto _buf = buf.get_access<sycl::access::mode::write>(cgh);
-                      auto _operand = buf_operand.get_access<sycl::access::mode::read>(cgh);
+                  q.submit([&](sycl::handler& cgh){
+                  auto _operand = buf_operand.get_access<sycl::access::mode::read_write>(cgh);
+                  auto _irp = buf_irp.get_access<sycl::access::mode::read>(cgh);
+                  auto _sirp = buf_sirp.get_access<sycl::access::mode::read>(cgh);
 
-                      cgh.parallel_for<class _split_transfer>
-                      (sycl::range<1>(num_threads/8), [=](sycl::id<1> id)
-                      {
-                          _buf[id] = _operand[offset+id.get(0)];
-                          _buf[id+1] = _operand[offset+id.get(0)+1];
-                          _buf[id+2] = _operand[offset+id.get(0)+2];
-                          _buf[id+3] = _operand[offset+id.get(0)+3];
-                          _buf[id+4] = _operand[offset+id.get(0)+4];
-                          _buf[id+5] = _operand[offset+id.get(0)+5];
-                          _buf[id+6] = _operand[offset+id.get(0)+6];
-                          _buf[id+7] = _operand[offset+id.get(0)+7];
-                      });
-                  });
-                  buffers.push_back(buf);
-              }
-              // cout << "loaded vectors\n";
-              size_t t = size_t(1) << 1;
-              int queue_num = std::rand();
-              for (size_t h = num_blocks >> 1; h > 0; h >>= 1)
-              {
-                  for (size_t i = 0; i < h; i++)
+                  cgh.parallel_for<class _intt_global>
+                  (work_groups, [=](sycl::nd_item<1> it)
                   {
-                      for (size_t k = i*2*t; k < (i*2+1)*t; k += 1)
-                      {
-                          cout << "Offset " << k << " stride " << t << " num blocks " << h << endl;
-                          queues[queue_num % n_queues].submit([&](sycl::handler& cgh){
-                          auto _x = buffers[k].get_access<sycl::access::mode::read_write>(cgh);
-                          auto _y = buffers[k+t].get_access<sycl::access::mode::read_write>(cgh);
+                      auto tid = it.get_global_id(0);
+                      if(2*tid < n){
+                          size_t h = m >> 1;
+                          size_t i = tid / t;
+                          size_t local_id = tid % t;
+                          size_t j1 = i * 2 * t;
 
-                          auto _irp = buf_irp.get_access<sycl::access::mode::read>(cgh);
-                          auto _sirp = buf_sirp.get_access<sycl::access::mode::read>(cgh);
+                          const uint64_t W = _irp[h + i];
+                          const uint64_t Wprime = _sirp[h + i];
 
-                          cgh.parallel_for<class _intt_global>
-                          (sycl::range<1>(num_threads), [=](sycl::id<1> tid)
-                          {
-                              if(tid.get(0) < num_threads){
-                                  const uint64_t W = _irp[h + i];
-                                  const uint64_t Wprime = _sirp[h + i];
+                          uint64_t U = _operand[j1+local_id];
+                          uint64_t V = _operand[j1+local_id+t];
 
-                                  uint64_t U = _x[tid];
-                                  uint64_t V = _y[tid];
-                                  uint64_t currU;
-                                  uint64_t T;
-                                  unsigned long long H;
+                          uint64_t currU;
+                          uint64_t T;
+                          unsigned long long H;
 
-                                  T = two_times_modulus - V + U;
-                                  currU = U + V - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>((U << 1) >= T)));
-                                  U = (currU + (modulus & static_cast<uint64_t>(-static_cast<int64_t>(T & 1)))) >> 1;
-                                  multiply_uint64_hw64(Wprime, T, &H);
-                                  V = T * W - H * modulus;
+                          T = two_times_modulus - V + U;
+                          currU = U + V - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>((U << 1) >= T)));
+                          U = (currU + (modulus & static_cast<uint64_t>(-static_cast<int64_t>(T & 1)))) >> 1;
+                          multiply_uint64_hw64(Wprime, T, &H);
+                          V = T * W - H * modulus;
 
-                                  _x[tid] = U;
-                                  _y[tid] = V;
-                              }
-                        });
-                        });
-                    }
-                }
-              t <<= 1;
-              for (auto q : queues) q.wait();
-              }
+                          if (h==1 && lazy==false) {
+                              if(U >= modulus) U -= modulus;
+                              if(V >= modulus) V -= modulus;
+                          }
 
-              for (size_t k = 0; k < 2*num_blocks; k++)
-              {
-                  queues[k % n_queues].submit([&](sycl::handler& cgh){
-                      auto _buf = buffers[k].get_access<sycl::access::mode::read>(cgh);
-                      auto _operand = buf_operand.get_access<sycl::access::mode::write>(cgh);
-
-                      cgh.parallel_for<class _join_transfer>
-                      (sycl::range<1>(num_threads), [=](sycl::id<1> id)
-                      {
-                          _operand[k*num_threads+id.get(0)] = _buf[id];
-                      });
+                          _operand[j1+local_id] = U;
+                          _operand[j1+local_id+t] = V;
+                      }
                   });
+                  });
+              q.wait();
+              t <<= 1;
               }
           }
 
