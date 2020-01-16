@@ -173,14 +173,14 @@ namespace seal
             const uint64_t *root_powers = tables.get_root_powers();
             const uint64_t *scaled_root_powers = tables.get_scaled_root_powers();
             uint64_t modulus = tables.modulus().value();
-            // sycl::queue q;
-            // sycl::buffer<uint64_t> buf_rp(root_powers, n);
-            // sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
-            // sycl::buffer<uint64_t> buf_operand(operand, n);
-            //
-            // ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
+            sycl::queue q;
+            sycl::buffer<uint64_t> buf_rp(root_powers, n);
+            sycl::buffer<uint64_t> buf_srp(scaled_root_powers, n);
+            sycl::buffer<uint64_t> buf_operand(operand, n);
 
-            ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
+            ntt_negacyclic_harvey_(q, buf_operand, buf_rp, buf_srp, modulus, n, true);
+
+        //     ntt_negacyclic_harvey_lazy__(operand, root_powers, scaled_root_powers, modulus, n);
         }
 
 
@@ -201,7 +201,7 @@ namespace seal
 
             if (num_blocks > 1){
                 size_t t = n >> 1;
-                for (size_t m = 1; m < n; m <<= 1)
+                for (size_t m = 1; t > num_threads; m <<= 1)
                 {
                   q.submit([&](sycl::handler& cgh){
                   auto _rp = buf_rp.get_access<sycl::access::mode::read>(cgh);
@@ -239,55 +239,55 @@ namespace seal
             }
           }
 
-            // q.submit([&](sycl::handler& cgh){
-            // auto _rp = buf_rp.get_access<sycl::access::mode::read>(cgh);
-            // auto _srp = buf_srp.get_access<sycl::access::mode::read>(cgh);
-            // auto _operand = buf_operand.get_access<sycl::access::mode::read_write>(cgh);
-            //
-            // cgh.parallel_for<class _ntt_negacyclic_harvey_local>
-            //     (work_groups, [=](sycl::nd_item<1> it){
-            //         int tid = it.get_global_id(0);
-            //         if (2*tid < n)
-            //         {
-            //             size_t t = block;
-            //             for (size_t m = n/t; m < n; m <<= 1)
-            //             {
-            //                 size_t i = tid / t;
-            //                 size_t local_id = tid % t;
-            //                 size_t j1 = i * 2 * t;
-            //                 const uint64_t W = _rp[m + i];
-            //                 const uint64_t Wprime = _srp[m + i];
-            //
-            //                 uint64_t currX;
-            //                 unsigned long long Q;
-            //
-            //                 uint64_t X = _operand[j1+local_id];
-            //                 uint64_t Y = _operand[j1+local_id+t];
-            //
-            //                 currX = X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(X >= two_times_modulus)));
-            //                 multiply_uint64_hw64(Wprime, Y, &Q);
-            //                 Q = Y * W - Q * modulus;
-            //                 _operand[j1+local_id] = currX + Q;
-            //                 _operand[j1+local_id+t] = currX + (two_times_modulus - Q);
-            //
-            //                 t >>= 1;
-            //                 it.barrier();
-            //             }
-            //             if (!lazy){
-            //               if (_operand[tid*2] >= two_times_modulus)
-            //               {
-            //                   _operand[tid*2] -= two_times_modulus;
-            //                   if (_operand[tid*2] >= modulus) _operand[tid*2] -= modulus;
-            //               }
-            //               if (_operand[tid*2+1] >= two_times_modulus)
-            //               {
-            //                   _operand[tid*2+1] -= two_times_modulus;
-            //                   if (_operand[tid*2+1] >= modulus) _operand[tid*2+1] -= modulus;
-            //               }
-            //             }
-            //           }
-            //     });
-            // });
+            q.submit([&](sycl::handler& cgh){
+            auto _rp = buf_rp.get_access<sycl::access::mode::read>(cgh);
+            auto _srp = buf_srp.get_access<sycl::access::mode::read>(cgh);
+            auto _operand = buf_operand.get_access<sycl::access::mode::read_write>(cgh);
+
+            cgh.parallel_for<class _ntt_negacyclic_harvey_local>
+                (work_groups, [=](sycl::nd_item<1> it){
+                    int tid = it.get_global_id(0);
+                    if (2*tid < n)
+                    {
+                        size_t t = block;
+                        for (size_t m=num_blocks; m < n; m <<= 1)
+                        {
+                            size_t i = tid / t;
+                            size_t local_id = tid % t;
+                            size_t j1 = i * 2 * t;
+                            const uint64_t W = _rp[m + i];
+                            const uint64_t Wprime = _srp[m + i];
+
+                            uint64_t currX;
+                            unsigned long long Q;
+
+                            uint64_t X = _operand[j1+local_id];
+                            uint64_t Y = _operand[j1+local_id+t];
+
+                            currX = X - (two_times_modulus & static_cast<uint64_t>(-static_cast<int64_t>(X >= two_times_modulus)));
+                            multiply_uint64_hw64(Wprime, Y, &Q);
+                            Q = Y * W - Q * modulus;
+                            _operand[j1+local_id] = currX + Q;
+                            _operand[j1+local_id+t] = currX + (two_times_modulus - Q);
+
+                            t >>= 1;
+                            it.barrier();
+                        }
+                        if (!lazy){
+                          if (_operand[tid*2] >= two_times_modulus)
+                          {
+                              _operand[tid*2] -= two_times_modulus;
+                              if (_operand[tid*2] >= modulus) _operand[tid*2] -= modulus;
+                          }
+                          if (_operand[tid*2+1] >= two_times_modulus)
+                          {
+                              _operand[tid*2+1] -= two_times_modulus;
+                              if (_operand[tid*2+1] >= modulus) _operand[tid*2+1] -= modulus;
+                          }
+                        }
+                      }
+                });
+            });
         }
 
       void ntt_negacyclic_harvey_lazy__(
@@ -494,7 +494,7 @@ namespace seal
 
             // inverse_ntt_negacyclic_harvey_(q, buf_operand, buf_irp, buf_sirp, modulus, n, true);
             //
-            inverse_ntt_negacyclic_harvey_lazy__(operand_.data(), inv_root_powers_div_two, scaled_inv_root_powers_div_two, modulus, n);
+            inverse_ntt_negacyclic_harvey_lazy__(operand, inv_root_powers_div_two, scaled_inv_root_powers_div_two, modulus, n);
         }
 
         void inverse_ntt_negacyclic_harvey_(
