@@ -2607,7 +2607,7 @@ namespace seal
             }
         }
 
-        switch_key_inplace__(coeff_count, rns_mod_count,
+        switch_key_inplace_(coeff_count, rns_mod_count,
             target, scheme, small_ntt_tables,
             key_mod_count, decomp_mod_count, key_modulus,
             key_vector, encrypted, modswitch_factors, pool);
@@ -2651,32 +2651,41 @@ namespace seal
           allocate_zero_poly(2 * coeff_count, rns_mod_count, pool)
       };
 
-      std::array<sycl::buffer<uint64_t>, 2> buf_temp_poly{
-          sycl::buffer<uint64_t>(temp_poly[0].get(), rns_mod_count*2*coeff_count),
-          sycl::buffer<uint64_t>(temp_poly[1].get(), rns_mod_count*2*coeff_count)
-      };
+      vector<array<sycl::buffer<uint64_t>, 2>> buf_temp_polys;
+      for (size_t k=0; k<rns_mod_count; k++){
+          buf_temp_polys.push_back(
+          std::array<sycl::buffer<uint64_t>, 2>{
+              sycl::buffer<uint64_t>(temp_poly[0].get() + 2*coeff_count*k, 2*coeff_count),
+              sycl::buffer<uint64_t>(temp_poly[1].get() + 2*coeff_count*k, 2*coeff_count)
+          });
+      }
+      vector<sycl::buffer<uint64_t>> buf_lsp_0;
+      vector<vector<sycl::buffer<uint64_t>>> buf_lsp_1;
 
-      auto local_small_poly_0(allocate_uint(coeff_count, pool));
-      auto local_small_poly_1(allocate_uint(coeff_count, pool));
-      sycl::buffer<uint64_t> buf_lsp_0(local_small_poly_0.get(), coeff_count);
-      sycl::buffer<uint64_t> buf_lsp_1(local_small_poly_1.get(), coeff_count);
+      for (size_t k=0; k<rns_mod_count; k++){
+          vector<sycl::buffer<uint64_t>> temp;
+          for (size_t k=0; k<rns_mod_count; k++){
+              temp.push_back(sycl::buffer<uint64_t>(coeff_count));
+          }
+          buf_lsp_0.push_back(sycl::buffer<uint64_t>(coeff_count));
+          buf_lsp_1.push_back(temp);
+      }
 
       vector<sycl::queue> queues;
-      for (size_t k=0; k<n_queues; k++){
+      for (size_t k=0; k<rns_mod_count; k++){
           queues.push_back(sycl::queue());
       }
 
       // RNS decomposition index = key index
       // #pragma omp parallel for
-      for(size_t i = 0; i < decomp_mod_count; i++){
+      for(size_t i = 0; i < decomp_mod_count; i++)
+      {
           // For each RNS decomposition, multiply with key data and sum up.
-          std::array<sycl::buffer<uint64_t>,2> buf_key({
+
+          array<sycl::buffer<uint64_t>, 2> buf_key({
             sycl::buffer<uint64_t>(key_vector[i].data().data(0), key_mod_count*coeff_count),
             sycl::buffer<uint64_t>(key_vector[i].data().data(1), key_mod_count*coeff_count)
           });
-
-          sycl::buffer<uint64_t> buf_key_0(key_vector[i].data().data(0), key_mod_count*coeff_count);
-          sycl::buffer<uint64_t> buf_key_1(key_vector[i].data().data(1), key_mod_count*coeff_count);
 
           // buf_lsp_0.get_access<sycl::access::mode::write>();
           // buf_target.get_access<sycl::access::mode::read>();
@@ -2686,8 +2695,8 @@ namespace seal
           //       local_small_poly_0.get());
 
           // Initialisation
-          q.submit([&](sycl::handler& cgh){
-              auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::write>(cgh);
+          queues[0].submit([&](sycl::handler& cgh){
+              auto _lsp_0 = buf_lsp_0[i].get_access<sycl::access::mode::write>(cgh);
               auto _target = buf_target.get_access<sycl::access::mode::read>(cgh);
 
               cgh.parallel_for<class _set_uint_uint_1>
@@ -2710,7 +2719,7 @@ namespace seal
 
               nvtxNameOsThread(0,"InputVideo");
               nvtxRangePush("INTT");
-              inverse_ntt_negacyclic_harvey_(q, buf_lsp_0,
+              inverse_ntt_negacyclic_harvey_(queues[0], buf_lsp_0[i],
                   tables[i][2], tables[i][3], key_modulus[i].value(), coeff_count);
               nvtxRangePop();
           }
@@ -2721,8 +2730,8 @@ namespace seal
               size_t index = (j == decomp_mod_count ? key_mod_count - 1 : j);
               if (scheme == scheme_type::CKKS && i == j)
               {
-                  q.submit([&](sycl::handler& cgh){
-                      auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
+                  queues[j].submit([&](sycl::handler& cgh){
+                      auto _lsp_1 = buf_lsp_1[i][j].get_access<sycl::access::mode::write>(cgh);
                       auto _target = buf_target.get_access<sycl::access::mode::read>(cgh);
 
                       cgh.parallel_for<class _set_uint_uint_2>
@@ -2756,9 +2765,9 @@ namespace seal
                     //     coeff_count,
                     //     local_small_poly_1.get());
                     // lsp_1  <- lsp_0
-                    q.submit([&](sycl::handler& cgh){
-                        auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
-                        auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::read>(cgh);
+                    queues[j].submit([&](sycl::handler& cgh){
+                        auto _lsp_1 = buf_lsp_1[i][j].get_access<sycl::access::mode::write>(cgh);
+                        auto _lsp_0 = buf_lsp_0[i].get_access<sycl::access::mode::read>(cgh);
                         cgh.parallel_for<class _set_uint_uint_3>
                           (sycl::range<1>(coeff_count/2), [=](sycl::id<1> tid){
                               if (2*tid.get(0) < coeff_count){
@@ -2780,9 +2789,9 @@ namespace seal
                     const uint64_t mod = key_modulus[index].value();
                     const uint64_t const_ratio = key_modulus[index].const_ratio()[1];
 
-                    q.submit([&](sycl::handler& cgh){
-                        auto _lsp_1 = buf_lsp_1.get_access<sycl::access::mode::write>(cgh);
-                        auto _lsp_0 = buf_lsp_0.get_access<sycl::access::mode::read>(cgh);
+                    queues[j].submit([&](sycl::handler& cgh){
+                        auto _lsp_1 = buf_lsp_1[i][j].get_access<sycl::access::mode::write>(cgh);
+                        auto _lsp_0 = buf_lsp_0[i].get_access<sycl::access::mode::read>(cgh);
 
                         cgh.parallel_for<class _barrett_reduce>
                         (sycl::range<1>(coeff_count/2), [=](sycl::id<1> tid){
@@ -2805,7 +2814,7 @@ namespace seal
                   //     local_small_poly_1.get(),
                   //     small_ntt_tables[index]);
 
-                  ntt_negacyclic_harvey_(q, buf_lsp_1,
+                  ntt_negacyclic_harvey_(queues[j], buf_lsp_1[i][j],
                       tables[index][0], tables[index][1], key_modulus[index].value(), coeff_count, true);
                   nvtxRangePop();
               }
@@ -2841,10 +2850,10 @@ namespace seal
                   //         local_wide_product[1] + local_carry;
                   // }
 
-                  q.submit([&](sycl::handler& cgh){
+                  queues[j].submit([&](sycl::handler& cgh){
                   auto _key = buf_key[k].get_access<sycl::access::mode::read>(cgh);
-                  auto _enc = buf_lsp_1.get_access<sycl::access::mode::read>(cgh);
-                  auto _tp = buf_temp_poly[k].get_access<sycl::access::mode::read_write>(cgh);
+                  auto _enc = buf_lsp_1[i][j].get_access<sycl::access::mode::read>(cgh);
+                  auto _tp = buf_temp_polys[j][k].get_access<sycl::access::mode::read_write>(cgh);
 
                   cgh.parallel_for<class _hadamard>
                   (sycl::range<1>(coeff_count), [=](sycl::id<1> tid){
@@ -2858,22 +2867,28 @@ namespace seal
                             _key[(index * coeff_count) + tid.get(0)],
                             local_wide_product);
                         local_carry = add_uint64(
-                            _tp[(j * coeff_count + tid.get(0)) * 2],
+                            _tp[tid.get(0) * 2],
                             local_wide_product[0],
                             &local_low_word);
-                        _tp[(j * coeff_count + tid.get(0)) * 2] =
+                        _tp[tid.get(0) * 2] =
                             local_low_word;
-                        _tp[(j * coeff_count + tid.get(0)) * 2 + 1] +=
+                        _tp[tid.get(0) * 2 + 1] +=
                             local_wide_product[1] + local_carry;
                       }
                     });
                  });
-               }  nvtxRangePop();
+                 nvtxRangePop();
+               }
             }
         }
 
-        q.wait();
-      //
+      nvtxNameOsThread(0,"InputVideo");
+      nvtxRangePush("Waiting");
+      for (auto q : queues) {
+          q.wait();
+      }
+      nvtxRangePop();
+      // //
       // // // Temporary results
       // Pointer<uint64_t> temp_poly_[2] {
       //     allocate_zero_poly(2 * coeff_count, rns_mod_count, pool),
@@ -2976,9 +2991,11 @@ namespace seal
       // cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
       // for (size_t k = 0; k < 2; k++)
       // {
-      //     buf_temp_poly[k].get_access<sycl::access::mode::read>();
+      //     for (auto buf_temp_poly : buf_temp_polys){
+      //         buf_temp_poly[k].get_access<sycl::access::mode::read_write>();
+      //     }
       //
-      //     for (size_t l = 0; l < coeff_count; l+=100)
+      //     for (size_t l = 0; l < 2*coeff_count*rns_mod_count; l+=100)
       //     {
       //         if (temp_poly_[k].get()[l] != temp_poly[k].get()[l]) {
       //           cout << l << ": MISMATCH!" << " SYCL " << temp_poly[k].get()[l] << " C++ " << temp_poly_[k].get()[l] << endl;
@@ -2992,12 +3009,14 @@ namespace seal
       // cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 
       // Results are now stored in temp_poly[k]
-      // Modulus switching should be performed
+      // Modulus switching should be performe
 
       auto local_small_poly(allocate_uint(coeff_count, pool));
       for (size_t k = 0; k < 2; k++)
       {
-          buf_temp_poly[k].get_access<sycl::access::mode::read>();
+        for (auto buf_temp_poly : buf_temp_polys){
+            buf_temp_poly[k].get_access<sycl::access::mode::read_write>();
+        }
           // Reduce (ct mod 4q) mod qk
           uint64_t *temp_poly_ptr = temp_poly[k].get() +
               decomp_mod_count * coeff_count * 2;
@@ -3011,9 +3030,9 @@ namespace seal
           uint64_t *temp_last_poly_ptr = temp_poly[k].get() + decomp_mod_count * coeff_count * 2;
 
 
-          inverse_ntt_negacyclic_harvey_(q, buf_lsp_0,
-              tables[key_mod_count - 1][2], tables[key_mod_count - 1][3],
-              key_modulus[key_mod_count - 1].value(), coeff_count);
+          // inverse_ntt_negacyclic_harvey_(q, buf_temp_polys[decomp_mod_count],
+          //     tables[key_mod_count - 1][2], tables[key_mod_count - 1][3],
+          //     key_modulus[key_mod_count - 1].value(), coeff_count);
 
           inverse_ntt_negacyclic_harvey_lazy(
               temp_last_poly_ptr,
