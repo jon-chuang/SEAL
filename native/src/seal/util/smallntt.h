@@ -151,6 +151,12 @@ namespace seal
                 return coeff_count_;
             }
 
+            SEAL_NODISCARD inline auto get_device_tables() const
+            -> const std::vector<sycl::buffer<uint64_t>>
+            {
+                return device_tables_;
+            }
+
         private:
             SmallNTTTables(const SmallNTTTables &copy) = delete;
 
@@ -201,6 +207,8 @@ namespace seal
             Pointer<decltype(root_)> scaled_inv_root_powers_;
 
             std::uint64_t inv_degree_modulo_ = 0;
+
+            std::vector<sycl::buffer<uint64_t>> device_tables_;
 
         };
 

@@ -53,6 +53,7 @@ namespace seal
           inv_degree_modulo_ = 0;
           coeff_count_power_ = 0;
           coeff_count_ = 0;
+          device_tables_ = vector<sycl::buffer<uint64_t>>();
       }
 
       bool SmallNTTTables::generate(int coeff_count_power,
@@ -114,9 +115,17 @@ namespace seal
           ntt_scale_powers_of_primitive_root(inv_root_powers_div_two_.get(),
               scaled_inv_root_powers_div_two_.get());
 
-          // Last compute n^(-1) modulo q.
+          // Last compute n^(-1) modulo q.z
           uint64_t degree_uint = static_cast<uint64_t>(coeff_count_);
           generated_ = try_invert_uint_mod(degree_uint, modulus_, inv_degree_modulo_);
+
+
+          device_tables_ = vector<sycl::buffer<uint64_t>>({
+            sycl::buffer<uint64_t>(root_powers_.get(), coeff_count_),
+            sycl::buffer<uint64_t>(scaled_root_powers_.get(), coeff_count_),
+            sycl::buffer<uint64_t>(inv_root_powers_div_two_.get(), coeff_count_),
+            sycl::buffer<uint64_t>(scaled_inv_root_powers_div_two_.get(), coeff_count_)
+          });
 
           if (!generated_)
           {
