@@ -202,7 +202,7 @@ namespace seal
       ){
             size_t num_blocks = ((n/2+num_threads-1)/num_threads);
             size_t block = min(n/2, size_t(num_threads));
-            sycl::range<1>block_size(block);
+            sycl::range<1> block_size(block);
             sycl::nd_range<1> work_groups{sycl::range<1>(n/2), block_size};
 
             uint64_t two_times_modulus = modulus * 2;

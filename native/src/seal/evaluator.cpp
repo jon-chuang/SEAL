@@ -2722,9 +2722,7 @@ namespace seal
                                 }
                           });
                     });
-                  }
-                  else
-                  {
+                  } else {
                     const uint64_t mod = key_modulus[index].value();
                     const uint64_t const_ratio = key_modulus[index].const_ratio()[1];
 
